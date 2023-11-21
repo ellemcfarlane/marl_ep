@@ -37,8 +37,15 @@ make train
 ```
 Local results are stored in subfold scripts/results. Note that we use Weights & Bias as the default visualization platform; to use Weights & Bias, please register and login to the platform first. More instructions for using Weights&Bias can be found in the official [documentation](https://docs.wandb.ai/). Adding the `--use_wandb` in command line or in the .sh file will use Tensorboard instead of Weights & Biases. 
 
+### 3.1 Train on DTU HPC
+* edit email in jobscript.sh to be your own (else: spam me)
+* `make queue` to submit job to queue
+* bstat to monitor job status
+* look at job output file via 'ls' in folder you submitted job from and see 'gpu_*.out' and 'gpu_*.err' files
+```
 ## 4. Results
 Results for the performance of RMADDPG and QMIX on the Particle Envs and QMIX in SMAC are depicted [here](https://docs.google.com/document/d/1s0Kb76b7v4WGyhiCNLrt9St-WvhGnl2AUQCe1FS-ADM/edit?usp=sharing). These results are obtained using a normal (not prioitized) replay buffer.
 
 ### 5. DTU HPC more info
 https://docs.google.com/document/d/1pBBmoLTj_JPWiCSFYzfHj646bb8uUCh8lMetJxnE68c/edit
+https://skaftenicki.github.io/dtu_mlops/s10_extra/high_performance_clusters/
