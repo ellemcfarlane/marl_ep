@@ -39,3 +39,6 @@ Local results are stored in subfold scripts/results. Note that we use Weights & 
 
 ## 4. Results
 Results for the performance of RMADDPG and QMIX on the Particle Envs and QMIX in SMAC are depicted [here](https://docs.google.com/document/d/1s0Kb76b7v4WGyhiCNLrt9St-WvhGnl2AUQCe1FS-ADM/edit?usp=sharing). These results are obtained using a normal (not prioitized) replay buffer.
+
+### 5. DTU HPC more info
+https://docs.google.com/document/d/1pBBmoLTj_JPWiCSFYzfHj646bb8uUCh8lMetJxnE68c/edit
