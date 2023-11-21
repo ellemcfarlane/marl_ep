@@ -65,7 +65,8 @@ def parse_args(args, parser):
 def main(args):
     parser = get_config()
     all_args = parse_args(args, parser)
-
+    print(f"all_args: {all_args}")
+    print(f"cuda avail? {torch.cuda.is_available()}")
     # cuda and # threads
     if all_args.cuda and torch.cuda.is_available():
         print("choose to use gpu...")
@@ -99,6 +100,8 @@ def main(args):
                          dir=str(run_dir),
                          job_type="training",
                          reinit=True)
+        print("wandb init done")
+        exit()
     else:
         if not run_dir.exists():
             curr_run = 'run1'

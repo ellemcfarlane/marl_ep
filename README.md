@@ -29,7 +29,8 @@ for all methods. RMADDPG and RMATD3 refer to RNN implementationso of MADDPG and 
 each environment. 
 
 * Executable scripts for training with default hyperparameters can be found in the scripts/ folder. The files are named
-in the following manner: train_algo_environment.sh. Within each file, the map name (in the case of SMAC and the MPEs) can be altered. 
+in the following manner: train_algo_environment.sh. Within each file, the map name (in the case of SMAC and the MPEs) can be altered.
+
 * Python training scripts for each environment can be found in the scripts/train/ folder. 
 
 * The config.py file contains relevant hyperparameter and env settings. Most hyperparameters are defaulted to the ones
@@ -46,7 +47,6 @@ conda create -n marl python==3.6.1
 conda activate marl
 pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 ```
-
 ```
 # install on-policy package
 cd on-policy
