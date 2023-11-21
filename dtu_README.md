@@ -42,6 +42,7 @@ Local results are stored in subfold scripts/results. Note that we use Weights & 
 * `make queue` to submit job to queue
 * bstat to monitor job status
 * look at job output file via 'ls' in folder you submitted job from and see 'gpu_*.out' and 'gpu_*.err' files
+* see wandb output e.g. at https://wandb.ai/elles/MPE/runs/z4277c1c?workspace=user-ellesummer
 ```
 ## 4. Results
 Results for the performance of RMADDPG and QMIX on the Particle Envs and QMIX in SMAC are depicted [here](https://docs.google.com/document/d/1s0Kb76b7v4WGyhiCNLrt9St-WvhGnl2AUQCe1FS-ADM/edit?usp=sharing). These results are obtained using a normal (not prioitized) replay buffer.
