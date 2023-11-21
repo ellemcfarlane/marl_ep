@@ -5,6 +5,9 @@ def get_config():
     parser = argparse.ArgumentParser(
         description="OFF-POLICY", formatter_class=argparse.RawDescriptionHelpFormatter)
 
+    # if set, just prints all args and exits
+    parser.add_argument('--dry_run', action='store_true', default=False)
+
     # prepare parameters
     parser.add_argument("--algorithm_name", type=str, default="rmatd3", choices=[
                         "rmatd3", "rmaddpg", "rmasac", "qmix", "vdn", "matd3", "maddpg", "masac", "mqmix", "mvdn"])
@@ -22,9 +25,9 @@ def get_config():
                         help="Number of parallel envs for evaluating rollout")
     parser.add_argument('--num_env_steps', type=int,
                         default=2000000, help="Number of env steps to train for")
-    parser.add_argument('--use_wandb', action='store_false', default=True,
+    parser.add_argument('--use_wandb', action='store_true', default=True,
                         help="Whether to use weights&biases, if not, use tensorboardX instead")
-    parser.add_argument('--user_name', type=str, default="zoeyuchao")
+    parser.add_argument('--user_name', type=str, default="elles")
 
     # env parameters
     parser.add_argument('--env_name', type=str, default="StarCraft2")
