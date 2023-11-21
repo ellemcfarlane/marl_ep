@@ -33,6 +33,7 @@ Here we use train_mpe_maddpg.sh as an example:
 # 1.2 if you do use wandb, make sure to change --user_name <username> to your own username in train_mpe_maddpg.sh
 # 2. to run on gpu, use 'voltash' in dtu hpc"
 make train
+# 3. if run into dependency issues, python3 -m pip install <missing> according to version listed in dtu_requirements.txt
 ```
 Local results are stored in subfold scripts/results. Note that we use Weights & Bias as the default visualization platform; to use Weights & Bias, please register and login to the platform first. More instructions for using Weights&Bias can be found in the official [documentation](https://docs.wandb.ai/). Adding the `--use_wandb` in command line or in the .sh file will use Tensorboard instead of Weights & Biases. 
 
