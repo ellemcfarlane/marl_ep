@@ -1,11 +1,12 @@
 
 ## 2. Installation on DTU HPC
-* conda create -n qmix python=3.6
+* conda create -n qmix python=3.6 OR if you don't have space on home dir and have a scratch dir, please see section 'DTU HPC more info' to see how to run conda create command
 * conda activate qmix
 * which python3 # double check points to python bin in conda env
-* python3 pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
-* module load cuda/10.1
+* module load cuda/10.1 # you must run these icuda commands before installing torch otherwise it will say version not found!!
 * module load cudnn/v7.6.5.32-prod-cuda-10.1
+* python3 -m pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+* python3 -m pip install -r dtu_requirements.txt
 
 ```
 # install offpolicy package
@@ -50,3 +51,10 @@ Results for the performance of RMADDPG and QMIX on the Particle Envs and QMIX in
 ### 5. DTU HPC more info
 https://docs.google.com/document/d/1pBBmoLTj_JPWiCSFYzfHj646bb8uUCh8lMetJxnE68c/edit
 https://skaftenicki.github.io/dtu_mlops/s10_extra/high_performance_clusters/
+
+#### 5.1 conda create on scratch space directory
+If running into python binary issues with conda in your scratch space (aka when using --prefix to point to scratch), make sure to:
+s222376@n-62-20-1 /work3/s222376 $ conda config --set always_copy True
+s222376@n-62-20-1 /work3/s222376 $ conda config --show | grep always_copy
+always_copy: True
+s222376@n-62-20-1 /work3/s222376 $ conda create --prefix=<scratch-dir>/off-policy/env python=3.6
