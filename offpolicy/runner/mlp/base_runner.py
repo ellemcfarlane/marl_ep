@@ -122,12 +122,12 @@ class MlpRunner(object):
 
         self.policies = {p_id: Policy(config, self.policy_info[p_id]) for p_id in self.policy_ids}
 
-        if self.model_dir is not None:
-            self.restorer()
-
         # initialize class for updating policies
         self.trainer = TrainAlgo(self.args, self.num_agents, self.policies, self.policy_mapping_fn,
                                  device=self.device)
+
+        if self.model_dir is not None:
+            self.restorer()
 
         self.policy_agents = {policy_id: sorted(
             [agent_id for agent_id in self.agent_ids if self.policy_mapping_fn(agent_id) == policy_id]) for policy_id in

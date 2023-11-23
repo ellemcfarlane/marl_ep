@@ -139,12 +139,12 @@ class RecRunner(object):
 
         self.policies = {p_id: Policy(config, self.policy_info[p_id]) for p_id in self.policy_ids}
 
-        if self.model_dir is not None:
-            self.restorer()
-
         # initialize trainer class for updating policies
         self.trainer = TrainAlgo(self.args, self.num_agents, self.policies, self.policy_mapping_fn,
                                  device=self.device, episode_length=self.episode_length)
+
+        if self.model_dir is not None:
+            self.restorer()
 
         # map policy id to agent ids controlled by that policy
         self.policy_agents = {policy_id: sorted(

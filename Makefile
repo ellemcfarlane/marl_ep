@@ -21,3 +21,6 @@ train-hpc:
 
 queue:
 	bsub < jobscript.sh
+
+# /work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_102645-18wnv6zj/files/policy_0/q_network.pt
+# /work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_102645-18wnv6zj/files/mixer.pt
