@@ -9,7 +9,7 @@ def get_config():
 
     # prepare parameters
     parser.add_argument("--algorithm_name", type=str, default="rmatd3", choices=[
-                        "rmatd3", "rmaddpg", "rmasac", "qmix", "vdn", "matd3", "maddpg", "masac", "mqmix", "mvdn"])
+                        "rmatd3", "rmaddpg", "rmasac", "qmix", "qmix_ep", "vdn", "matd3", "maddpg", "masac", "mqmix", "mvdn"])
     parser.add_argument("--experiment_name", type=str, default="check")
     parser.add_argument("--seed", type=int, default=1,
                         help="Random seed for numpy/torch")
@@ -24,7 +24,7 @@ def get_config():
                         help="Number of parallel envs for evaluating rollout")
     parser.add_argument('--num_env_steps', type=int,
                         default=2000000, help="Number of env steps to train for")
-    parser.add_argument('--use_wandb', action='store_true', default=True,
+    parser.add_argument('--use_wandb', action='store_true', default=False,
                         help="Whether to use weights&biases, if not, use tensorboardX instead")
     parser.add_argument('--user_name', type=str, default="elles")
 

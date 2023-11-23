@@ -17,7 +17,7 @@ class RecRunner(object):
         """
         self.args = config["args"]
         self.device = config["device"]
-        self.q_learning = ["qmix","vdn"]
+        self.q_learning = ["qmix","qmix_ep","vdn"]
 
         self.share_policy = self.args.share_policy
         self.algorithm_name = self.args.algorithm_name
@@ -123,6 +123,9 @@ class RecRunner(object):
         elif self.algorithm_name == "qmix":
             from offpolicy.algorithms.qmix.algorithm.QMixPolicy import QMixPolicy as Policy
             from offpolicy.algorithms.qmix.qmix import QMix as TrainAlgo
+        elif self.algorithm_name == "qmix_ep":
+            from offpolicy.algorithms.qmix_ep.algorithm.QMixPolicy import QMixPolicy as Policy
+            from offpolicy.algorithms.qmix_ep.qmix import QMix as TrainAlgo
         elif self.algorithm_name == "vdn":
             from offpolicy.algorithms.vdn.algorithm.VDNPolicy import VDNPolicy as Policy
             from offpolicy.algorithms.vdn.vdn import VDN as TrainAlgo
