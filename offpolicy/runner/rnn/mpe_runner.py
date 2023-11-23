@@ -57,7 +57,6 @@ class MPERunner(RecRunner):
         render = True
         t = 0
         while t < self.episode_length:
-            print(f"num envs: {self.num_envs}")
             share_obs = obs.reshape(self.num_envs, -1)
             # print(f"share_obs: {share_obs}")
             # group observations from parallel envs into one batch to process at once
@@ -87,6 +86,8 @@ class MPERunner(RecRunner):
             next_obs, rewards, dones, infos = env.step(env_acts)
             if render:
                 env.render()
+                # sleep to slow down rendering
+                time.sleep(0.1)
 
             dones_env = np.all(dones, axis=1)
             terminate_episodes = np.any(dones_env) or t == self.episode_length - 1
