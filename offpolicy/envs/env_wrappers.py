@@ -109,6 +109,8 @@ class ShareVecEnv(ABC):
     def render(self, mode='human'):
         from ..utils.util import tile_images
         imgs = self.get_images()
+        print(f"imgs shape! {imgs.shape}")
+        # imgs shape! (1, 1, 700, 700, 3)
         bigimg = tile_images(imgs)
         if mode == 'human':
             self.get_viewer().imshow(bigimg)
@@ -122,12 +124,11 @@ class ShareVecEnv(ABC):
         """
         Return RGB images from each environment
         """
-        # for each env call render to get rgb
-        imgs = [env.render(mode='rgb_array') for env in self.envs]
-        # make imgs should have shape (num_envs, height, width, nchannels)
-        # imgs should be array of shape (num_envs, height, width, nchannels)
-        imgs = np.array(imgs).astype(np.uint8)
-        print(f" img shape! {imgs[0]}")
+        # TODO (elle) BUG: why is indexing necessary here?
+        # shape example (1, 700, 700, 3)
+        imgs = np.array([env.render(mode='rgb_array')[0] for env in self.envs], dtype=np.uint8)
+
+        print(f"img shape! {imgs[0].shape}")
         return imgs
 
     @property
