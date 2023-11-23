@@ -4,7 +4,6 @@ import argparse
 def get_config():
     parser = argparse.ArgumentParser(
         description="OFF-POLICY", formatter_class=argparse.RawDescriptionHelpFormatter)
-
     # if set, just prints all args and exits
     parser.add_argument('--dry_run', action='store_true', default=False)
 
