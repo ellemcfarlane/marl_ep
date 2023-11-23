@@ -254,7 +254,8 @@ class MultiAgentEnv(gym.Env):
         self.render_geoms = None
         self.render_geoms_xform = None
 
-    def render(self, mode='human', close=True):
+    def render(self, mode='human', close=False):
+        print("CALLED?!")
         if close:
             # close any existic renderers
             for i, viewer in enumerate(self.viewers):
@@ -262,7 +263,7 @@ class MultiAgentEnv(gym.Env):
                     viewer.close()
                 self.viewers[i] = None
             return []
-
+        print("CALLED AFTER?!")
         if mode == 'human':
             alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             message = ''
@@ -371,6 +372,7 @@ class MultiAgentEnv(gym.Env):
                         viewer.add_geom(geom)
 
         results = []
+        print(f"trying to render {len(self.viewers)} viewers")
         for i in range(len(self.viewers)):
             from . import rendering
 

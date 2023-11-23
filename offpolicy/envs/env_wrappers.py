@@ -107,7 +107,7 @@ class ShareVecEnv(ABC):
         return self.step_wait()
 
     def render(self, mode='human'):
-        from utils.util import tile_images
+        from ..utils.util import tile_images
         imgs = self.get_images()
         bigimg = tile_images(imgs)
         if mode == 'human':
@@ -122,7 +122,13 @@ class ShareVecEnv(ABC):
         """
         Return RGB images from each environment
         """
-        raise NotImplementedError
+        # for each env call render to get rgb
+        imgs = [env.render(mode='rgb_array') for env in self.envs]
+        # make imgs should have shape (num_envs, height, width, nchannels)
+        # imgs should be array of shape (num_envs, height, width, nchannels)
+        imgs = np.array(imgs).astype(np.uint8)
+        print(f" img shape! {imgs[0]}")
+        return imgs
 
     @property
     def unwrapped(self):

@@ -6,6 +6,7 @@ def get_config():
         description="OFF-POLICY", formatter_class=argparse.RawDescriptionHelpFormatter)
     # if set, just prints all args and exits
     parser.add_argument('--dry_run', action='store_true', default=False)
+    parser.add_argument('--play', action='store_true', default=False)
 
     # prepare parameters
     parser.add_argument("--algorithm_name", type=str, default="rmatd3", choices=[

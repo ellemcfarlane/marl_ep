@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import time
-
+import sys
 from offpolicy.runner.rnn.base_runner import RecRunner
 
 class MPERunner(RecRunner):
@@ -28,10 +28,93 @@ class MPERunner(RecRunner):
                 eval_infos[k].append(v)
 
         self.log_env(eval_infos, suffix="eval_")
-      
+    
+    def play(self):
+        """Play an episode using the trained policy."""
+        env_info = {}
+        # only 1 policy since all agents share weights - todo (elle): why share weights if QMIX is based on IDQN? This is for centralized Q then?
+        p_id = "policy_0"
+        policy = self.policies[p_id]
+
+        env = self.eval_env
+
+        obs = env.reset()
+
+        rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
+        last_acts_batch = np.zeros((self.num_envs * self.num_agents, policy.output_dim), dtype=np.float32)
+
+        # initialize variables to store episode information.
+        episode_obs = {p_id : np.zeros((self.episode_length + 1, self.num_envs, self.num_agents, policy.obs_dim), dtype=np.float32) for p_id in self.policy_ids}
+        episode_share_obs = {p_id : np.zeros((self.episode_length + 1, self.num_envs, self.num_agents, policy.central_obs_dim), dtype=np.float32) for p_id in self.policy_ids}
+        episode_acts = {p_id : np.zeros((self.episode_length, self.num_envs, self.num_agents, policy.output_dim), dtype=np.float32) for p_id in self.policy_ids}
+        episode_rewards = {p_id : np.zeros((self.episode_length, self.num_envs, self.num_agents, 1), dtype=np.float32) for p_id in self.policy_ids}
+        episode_dones = {p_id : np.ones((self.episode_length, self.num_envs, self.num_agents, 1), dtype=np.float32) for p_id in self.policy_ids}
+        episode_dones_env = {p_id : np.ones((self.episode_length, self.num_envs, 1), dtype=np.float32) for p_id in self.policy_ids}
+        episode_avail_acts = {p_id : None for p_id in self.policy_ids}
+
+        explore = False
+        warmup = False
+        render = True
+        t = 0
+        while t < self.episode_length:
+            print(f"num envs: {self.num_envs}")
+            share_obs = obs.reshape(self.num_envs, -1)
+            # print(f"share_obs: {share_obs}")
+            # group observations from parallel envs into one batch to process at once
+            obs_batch = np.concatenate(obs)
+            # get actions for all agents to step the env
+            if warmup:
+                # completely random actions in pre-training warmup phase
+                acts_batch = policy.get_random_actions(obs_batch)
+                # get new rnn hidden state
+                _, rnn_states_batch, _ = policy.get_actions(obs_batch,
+                                                            last_acts_batch,
+                                                            rnn_states_batch)
+            else:
+                # get actions with exploration noise (eps-greedy/Gaussian)
+                acts_batch, rnn_states_batch, _ = policy.get_actions(obs_batch,
+                                                                    last_acts_batch,
+                                                                    rnn_states_batch,
+                                                                    t_env=self.total_env_steps,
+                                                                    explore=explore)
+            acts_batch = acts_batch if isinstance(acts_batch, np.ndarray) else acts_batch.cpu().detach().numpy()
+            # update rnn hidden state
+            rnn_states_batch = rnn_states_batch if isinstance(rnn_states_batch, np.ndarray) else rnn_states_batch.cpu().detach().numpy()
+            last_acts_batch = acts_batch
+
+            env_acts = np.split(acts_batch, self.num_envs)
+            # env step and store the relevant episode informatio
+            next_obs, rewards, dones, infos = env.step(env_acts)
+            if render:
+                env.render()
+
+            dones_env = np.all(dones, axis=1)
+            terminate_episodes = np.any(dones_env) or t == self.episode_length - 1
+
+            episode_obs[p_id][t] = obs
+            episode_share_obs[p_id][t] = share_obs
+            episode_acts[p_id][t] = np.stack(env_acts)
+            episode_rewards[p_id][t] = rewards
+            episode_dones[p_id][t] = dones
+            episode_dones_env[p_id][t] = dones_env
+            t += 1
+
+            obs = next_obs
+
+            if terminate_episodes:
+                break
+
+        episode_obs[p_id][t] = obs
+        episode_share_obs[p_id][t] = obs.reshape(self.num_envs, -1)
+
+        average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], axis=0))
+        env_info['average_episode_rewards'] = average_episode_rewards
+
+        return env_info
+    
     # for mpe-simple_spread and mpe-simple_reference  
     @torch.no_grad() 
-    def shared_collect_rollout(self, explore=True, training_episode=True, warmup=False):
+    def shared_collect_rollout(self, explore=True, training_episode=True, warmup=False, render=False):
         """
         Collect a rollout and store it in the buffer. All agents share a single policy.
         :param explore: (bool) whether to use an exploration strategy when collecting the episoide.
@@ -87,8 +170,10 @@ class MPERunner(RecRunner):
             last_acts_batch = acts_batch
 
             env_acts = np.split(acts_batch, self.num_envs)
-            # env step and store the relevant episode information
+            # env step and store the relevant episode informatio
             next_obs, rewards, dones, infos = env.step(env_acts)
+            if render:
+                env.render()
             if training_episode:
                 self.total_env_steps += self.num_envs
 
@@ -262,3 +347,36 @@ class MPERunner(RecRunner):
         self.env_infos = {}
 
         self.env_infos['average_episode_rewards'] = []
+
+def main(args):
+    parser = get_config()
+    all_args = parse_args(args, parser)
+    config = {"args": all_args,
+              "policy_info": policy_info,
+              "policy_mapping_fn": policy_mapping_fn,
+              "env": env,
+              "eval_env": eval_env,
+              "num_agents": num_agents,
+              "device": device,
+              "use_same_share_obs": all_args.use_same_share_obs,
+              "run_dir": run_dir
+              }
+
+    total_num_steps = 0
+    runner = MPERunner(config=config)
+    while total_num_steps < all_args.num_env_steps:
+        total_num_steps = runner.run()
+
+    env.close()
+    if all_args.use_eval and (eval_env is not env):
+        eval_env.close()
+
+    if all_args.use_wandb:
+        run.finish()
+    else:
+        runner.writter.export_scalars_to_json(
+            str(runner.log_dir + '/summary.json'))
+        runner.writter.close()
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -169,18 +169,21 @@ def main(args):
               "policy_info": policy_info,
               "policy_mapping_fn": policy_mapping_fn,
               "env": env,
-              "eval_env": eval_env,
+              "eval_env": make_eval_env(all_args),
               "num_agents": num_agents,
               "device": device,
               "use_same_share_obs": all_args.use_same_share_obs,
-              "run_dir": run_dir
+              "run_dir": run_dir,
               }
 
     total_num_steps = 0
     runner = Runner(config=config)
-    while total_num_steps < all_args.num_env_steps:
-        total_num_steps = runner.run()
-
+    
+    if not all_args.play:
+        while total_num_steps < all_args.num_env_steps:
+            total_num_steps = runner.run()
+    else:
+        runner.play()
     env.close()
     if all_args.use_eval and (eval_env is not env):
         eval_env.close()

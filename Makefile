@@ -9,6 +9,11 @@ train-ep:
 	chmod +x ./train_mpe_qmix.sh; \
 	./train_mpe_qmix_ep.sh
 
+play-ep:
+	cd offpolicy/scripts/; \
+	chmod +x ./play_mpe_qmix_ep.sh; \
+	./play_mpe_qmix_ep.sh
+
 train:
 	cd offpolicy/scripts/; \
 	chmod +x ./train_mpe_qmix.sh; \
