@@ -10,7 +10,7 @@ from offpolicy.config import get_config
 from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
 from offpolicy.envs.mpe.MPE_Env import MPEEnv
 from offpolicy.envs.env_wrappers import DummyVecEnv, SubprocVecEnv
-
+from copy import deepcopy
 
 def make_train_env(all_args):
     def get_env_fn(rank):
@@ -165,15 +165,33 @@ def main(args):
     else:
         raise NotImplementedError
 
+    # load pretrained QMIX as epistemic planner
+    # total_num_steps = 0
+    if all_args.algorithm_name in ["qmix_ep"]:
+        assert all_args.epi_dir is not None, "Must specify epi_dir for epistemic planner"
+        assert all_args.model_dir is None, "Must not specify model_dir for epistemic planner"
+        ep_planner_config = {"args": all_args,
+                "policy_info": policy_info,
+                "policy_mapping_fn": policy_mapping_fn,
+                "env": deepcopy(env), # TODO (elle): double check copies correctly, else use make_train_env(all_args)
+                "eval_env": make_eval_env(all_args),
+                "num_agents": num_agents,
+                "device": device,
+                "use_same_share_obs": True,
+                "run_dir": None,
+        }
+        epistemic_planner = Runner(config=ep_planner_config)
+
     config = {"args": all_args,
               "policy_info": policy_info,
               "policy_mapping_fn": policy_mapping_fn,
               "env": env,
-              "eval_env": make_eval_env(all_args),
+              "eval_env": make_eval_env(all_args), # TODO fix to generalize to more than qmix and qmix_ep i.e. eval_env = <>
               "num_agents": num_agents,
               "device": device,
               "use_same_share_obs": all_args.use_same_share_obs,
               "run_dir": run_dir,
+              "epistemic_planner": epistemic_planner if all_args.algorithm_name in ["qmix_ep"] else None,
               }
 
     total_num_steps = 0

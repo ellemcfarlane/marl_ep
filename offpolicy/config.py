@@ -193,5 +193,5 @@ def get_config():
 
     # pretained parameters
     parser.add_argument("--model_dir", type=str, default=None)
-
+    parser.add_argument("--epi_dir", type=str, default=None)
     return parser

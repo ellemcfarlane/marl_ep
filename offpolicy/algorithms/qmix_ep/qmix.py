@@ -6,9 +6,10 @@ from offpolicy.algorithms.vdn.algorithm.vdn_mixer import VDNMixer
 from offpolicy.algorithms.base.trainer import Trainer
 from offpolicy.utils.popart import PopArt
 import numpy as np
+from offpolicy.runner.rnn.mpe_runner import MPERunner
 
 class QMix(Trainer):
-    def __init__(self, args, num_agents, policies, policy_mapping_fn, device=torch.device("cuda:0"), episode_length=None, vdn=False):
+    def __init__(self, args, num_agents, policies, policy_mapping_fn, device=torch.device("cuda:0"), episode_length=None, vdn=False, epistemic_planner=None):
         """
         Trainer class for recurrent QMix/VDN. See parent class for more information.
         :param episode_length: (int) maximum length of an episode.
@@ -46,6 +47,7 @@ class QMix(Trainer):
 
         # TODO (elle): make sure to set to false for marl-ep!
         self.use_same_share_obs = self.args.use_same_share_obs
+        self.epistemic_planner = epistemic_planner
 
         multidiscrete_list = None
         if any([isinstance(policy.act_dim, np.ndarray) for policy in self.policies.values()]):

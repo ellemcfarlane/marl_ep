@@ -92,8 +92,14 @@ class RecRunner(object):
         # no parallel envs
         self.num_envs = 1
 
+        self.epistemic_planner = config["epistemic_planner"]
         # dir
         self.model_dir = self.args.model_dir
+        # loads epistemic planner if exists
+        if self.args.epi_dir:
+            self.model_dir = self.args.epi_dir
+        else:
+            self.model_dir = self.args.model_dir
         if self.use_wandb:
             self.save_dir = str(wandb.run.dir)
         else:

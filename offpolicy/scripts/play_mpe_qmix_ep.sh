@@ -6,7 +6,7 @@ num_agents=3
 algo="qmix_ep"
 exp="${exp:-debug}" # default to experiment name "debug"
 seed_max=1
-# WARNING: make device num is correct, e.g. check avail with nvidid-smi
+# WARNING: make sure device num is correct, e.g. check avail with nvidid-smi
 CUDA_VISIBLE_DEVICES=0
 PYTHON_BIN=/work3/s222376/off-policy/env/bin/python3
 PRETRAINED_QMIX=/work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_143441-3g43g1v8/files/

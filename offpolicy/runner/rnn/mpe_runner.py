@@ -113,6 +113,18 @@ class MPERunner(RecRunner):
 
         return env_info
     
+    def add_priors_to_obs(self, obs, priors):
+        """
+        Add priors to the observation.
+        :param obs: (np.ndarray) observation to add priors to.
+        :param priors: (np.ndarray) priors to add to the observation.
+        :return obs: (np.ndarray) observation with priors added.
+        """
+        # if self.args.use_priors:
+            # add priors to the observation
+        obs = np.concatenate((obs, priors), axis=-1)
+        return obs
+
     # for mpe-simple_spread and mpe-simple_reference  
     @torch.no_grad() 
     def shared_collect_rollout(self, explore=True, training_episode=True, warmup=False, render=False):
@@ -130,7 +142,7 @@ class MPERunner(RecRunner):
         policy = self.policies[p_id]
 
         env = self.env if training_episode or warmup else self.eval_env
-
+        # TODO (elle): what are priors at beginning?
         obs = env.reset()
 
         rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
@@ -146,8 +158,14 @@ class MPERunner(RecRunner):
         episode_avail_acts = {p_id : None for p_id in self.policy_ids}
 
         t = 0
+        # TODO (elle): use shared or separated collect rollout?
+        # TODO is sampling from buffer random I assume? Need to get trajectory in order.
+        if self.epistemic_planner is not None:
+            plan = self.epistemic_planner.shared_collect_rollout(explore=False, training_episode=False, warmup=False).buffer.sample_ordered(self.episode_length)
         while t < self.episode_length:
             share_obs = obs.reshape(self.num_envs, -1)
+            if self.epistemic_planner is not None:
+                share_obs = self.add_priors_to_obs(share_obs, plan['priors'][t])
             # group observations from parallel envs into one batch to process at once
             obs_batch = np.concatenate(obs)
             # get actions for all agents to step the env
@@ -349,35 +367,35 @@ class MPERunner(RecRunner):
 
         self.env_infos['average_episode_rewards'] = []
 
-def main(args):
-    parser = get_config()
-    all_args = parse_args(args, parser)
-    config = {"args": all_args,
-              "policy_info": policy_info,
-              "policy_mapping_fn": policy_mapping_fn,
-              "env": env,
-              "eval_env": eval_env,
-              "num_agents": num_agents,
-              "device": device,
-              "use_same_share_obs": all_args.use_same_share_obs,
-              "run_dir": run_dir
-              }
+# def main(args):
+    # parser = get_config()
+    # all_args = parse_args(args, parser)
+    # config = {"args": all_args,
+    #           "policy_info": policy_info,
+    #           "policy_mapping_fn": policy_mapping_fn,
+    #           "env": env,
+    #           "eval_env": eval_env,
+    #           "num_agents": num_agents,
+    #           "device": device,
+    #           "use_same_share_obs": all_args.use_same_share_obs,
+    #           "run_dir": run_dir
+    #           }
 
-    total_num_steps = 0
-    runner = MPERunner(config=config)
-    while total_num_steps < all_args.num_env_steps:
-        total_num_steps = runner.run()
+    # total_num_steps = 0
+    # runner = MPERunner(config=config)
+    # while total_num_steps < all_args.num_env_steps:
+    #     total_num_steps = runner.run()
 
-    env.close()
-    if all_args.use_eval and (eval_env is not env):
-        eval_env.close()
+    # env.close()
+    # if all_args.use_eval and (eval_env is not env):
+    #     eval_env.close()
 
-    if all_args.use_wandb:
-        run.finish()
-    else:
-        runner.writter.export_scalars_to_json(
-            str(runner.log_dir + '/summary.json'))
-        runner.writter.close()
+    # if all_args.use_wandb:
+    #     run.finish()
+    # else:
+    #     runner.writter.export_scalars_to_json(
+    #         str(runner.log_dir + '/summary.json'))
+    #     runner.writter.close()
 
-if __name__ == "__main__":
-    main(sys.argv[1:])
+# if __name__ == "__main__":
+#     main(sys.argv[1:])
