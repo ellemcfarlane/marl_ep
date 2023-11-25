@@ -15,12 +15,14 @@ class MPERunner(RecRunner):
         self.collecter = self.shared_collect_rollout if self.share_policy else self.separated_collect_rollout
         # fill replay buffer with random actions
         num_warmup_episodes = max((self.batch_size, self.args.num_random_episodes))
+        logging.info("mperunner.__init__.warmup")
         self.warmup(num_warmup_episodes)
         self.start = time.time()
         self.log_clear()
     
     def eval(self):
         """Collect episodes to evaluate the policy."""
+        logging.info("mperunner.eval.prep_rollout")
         self.trainer.prep_rollout()
         eval_infos = {}
         eval_infos['average_episode_rewards'] = []
@@ -193,6 +195,7 @@ class MPERunner(RecRunner):
 
         :return env_info: (dict) contains information about the rollout (total rewards, etc).
         """
+        logging.info("mperunner.shared_collect_rollout")
         env_info = {}
         # only 1 policy since all agents share weights
         p_id = "policy_0"
@@ -226,6 +229,7 @@ class MPERunner(RecRunner):
         # TODO is sampling from buffer random I assume? Need to get trajectory in order.
         # TODO: do we need to call this every time we call shared_collect_rollout?
         if self.epistemic_planner is not None:
+            logging.info(f"COLLECTING PRIORS")
             _ = self.epistemic_planner.shared_collect_rollout(explore=False, training_episode=False, warmup=False)
             
             n_plans = 1

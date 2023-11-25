@@ -249,7 +249,9 @@ def main(args):
     print("running?") 
     if not all_args.play:
         while total_num_steps < all_args.num_env_steps:
+            logging.info("calling runner.run()")
             total_num_steps = runner.run()
+            logging.info(".run() done")
     else:
         runner.play()
     env.close()

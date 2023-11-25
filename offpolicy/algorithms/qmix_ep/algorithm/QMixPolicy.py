@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from offpolicy.algorithms.qmix.algorithm.agent_q_function import AgentQFunction
+from offpolicy.algorithms.qmix_ep.algorithm.agent_q_function import AgentQFunction
 from offpolicy.algorithms.base.recurrent_policy import RecurrentPolicy
 from torch.distributions import Categorical, OneHotCategorical
 from offpolicy.utils.util import get_dim_from_space, is_discrete, is_multidiscrete, make_onehot, DecayThenFlatSchedule, avail_choose, to_torch, to_numpy, setup_logging
@@ -47,7 +47,7 @@ class QMixPolicy(RecurrentPolicy):
             self.exploration = DecayThenFlatSchedule(self.args.epsilon_start, self.args.epsilon_finish, self.args.epsilon_anneal_time,
                                                   decay="linear")
 
-    def get_q_values(self, obs_batch, prev_action_batch, rnn_states, action_batch=None):
+    def get_q_values(self, obs_batch, prev_action_batch, rnn_states, action_batch=None, debug=False):
         """
         Computes q values using the given information.
         :param obs: (np.ndarray) agent observations from which to compute q values
@@ -64,9 +64,9 @@ class QMixPolicy(RecurrentPolicy):
             input_batch = torch.cat((obs_batch, prev_action_batch), dim=-1)
         else:
             input_batch = obs_batch
-
+        if debug:
+            import pdb; pdb.set_trace()
         q_batch, new_rnn_states = self.q_network(input_batch, rnn_states)
-
         if action_batch is not None:
             action_batch = to_torch(action_batch).to(self.device)
             q_values = self.q_values_from_actions(q_batch, action_batch)

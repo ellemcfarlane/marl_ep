@@ -7,7 +7,10 @@ import torch
 import time
 
 from offpolicy.utils.mlp_buffer import MlpReplayBuffer, PrioritizedMlpReplayBuffer
-from offpolicy.utils.util import is_discrete, is_multidiscrete, DecayThenFlatSchedule
+from offpolicy.utils.util import is_discrete, is_multidiscrete, DecayThenFlatSchedule, setup_logging
+import logging
+
+setup_logging()
 
 
 class MlpRunner(object):

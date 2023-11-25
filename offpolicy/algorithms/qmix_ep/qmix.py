@@ -1,7 +1,7 @@
 import torch
 import copy
 from offpolicy.utils.util import soft_update, huber_loss, mse_loss, to_torch
-from offpolicy.algorithms.qmix.algorithm.q_mixer import QMixer
+from offpolicy.algorithms.qmix_ep.algorithm.q_mixer import QMixer
 from offpolicy.algorithms.vdn.algorithm.vdn_mixer import VDNMixer
 from offpolicy.algorithms.base.trainer import Trainer
 from offpolicy.utils.popart import PopArt
@@ -91,6 +91,7 @@ class QMix(Trainer):
         avail_act_batch, \
         importance_weights, idxes = batch
 
+        logging.info(f"qmix.train_policy_on_batch called")
         if self.use_same_share_obs:
             cent_obs_batch = to_torch(cent_obs_batch[self.policy_ids[0]])
         else:
@@ -111,6 +112,8 @@ class QMix(Trainer):
             target_policy = self.target_policies[p_id]
             # get data related to the policy id
             pol_obs_batch = to_torch(obs_batch[p_id])
+            logging.info(f"pol_obs_batch: {pol_obs_batch.shape}, type {type(pol_obs_batch)}, requires grad: {pol_obs_batch.requires_grad}")
+
             curr_act_batch = to_torch(act_batch[p_id]).to(**self.tpdv)
 
             # stack over policy's agents to process them at once
@@ -131,10 +134,20 @@ class QMix(Trainer):
 
             pol_prev_act_buffer_seq = torch.cat((torch.zeros(1, total_batch_size, sum_act_dim).to(**self.tpdv),
                                                  stacked_act_batch))
-
+            print(f"stackedobsbatch.shape {stacked_obs_batch.shape}, type {type(stacked_obs_batch)}, requires grad: {stacked_obs_batch.requires_grad}")
             # sequence of q values for all possible actions
+            # import debugger here
+            # import pdb; pdb.set_trace()
+            # [26, 96, 22] stackedobsbatch shape
+            # create dummy values of shape [26, 96, 22] for pol_prev_act_buffer_seq
+            dumm_stacked_obs_batch = torch.zeros_like(stacked_obs_batch)
+            dummy_pol_all_q_seq, _ = policy.get_q_values(dumm_stacked_obs_batch, pol_prev_act_buffer_seq, policy.init_hidden(-1, total_batch_size), debug=True)
+            print(f"policy in training {policy.q_network.training}, target policy in training {target_policy.q_network.training}")
+            print(f"dummy_pol_all_q_seq.shape {dummy_pol_all_q_seq.shape}, requires grad: {dummy_pol_all_q_seq.requires_grad}")
             pol_all_q_seq, _ = policy.get_q_values(stacked_obs_batch, pol_prev_act_buffer_seq,
-                                                                            policy.init_hidden(-1, total_batch_size))
+                                                                            policy.init_hidden(-1, total_batch_size), debug=True)
+
+            print(f"pol_all_q_seq.shape {pol_all_q_seq.shape}, requires grad: {pol_all_q_seq.requires_grad}")
             # get only the q values corresponding to actions taken in action_batch. Ignore the last time dimension.
             if policy.multidiscrete:
                 pol_all_q_curr_seq = [q_seq[:-1] for q_seq in pol_all_q_seq]
@@ -159,11 +172,15 @@ class QMix(Trainer):
         # combine agent q value sequences to feed into mixer networks
         agent_q_seq = torch.cat(agent_q_seq, dim=-1)
         agent_nq_seq = torch.cat(agent_nq_seq, dim=-1)
-
+        logging.info(f"agent_q_seq: {agent_q_seq.shape}, type {type(agent_q_seq)}, requires grad: {agent_q_seq.requires_grad}")
+        logging.info(f"agent_nq_seq: {agent_nq_seq.shape}, type {type(agent_nq_seq)}, requires grad: {agent_nq_seq.requires_grad}")
         # get curr step and next step Q_tot values using mixer
         Q_tot_seq = self.mixer(agent_q_seq, cent_obs_batch[:-1]).squeeze(-1)
         next_step_Q_tot_seq = self.target_mixer(agent_nq_seq, cent_obs_batch[1:]).squeeze(-1)
-
+        print(f"mixer type {type(self.mixer)}")
+        print(f"target mixer type {type(self.target_mixer)}")
+        print(f"QTOTSHAPE {Q_tot_seq.shape}, type {type(Q_tot_seq)}")
+        print(f"next step QTOTSHAPE {next_step_Q_tot_seq.shape}, type {type(next_step_Q_tot_seq)}")
         # agents share reward
         rewards = to_torch(rew_batch[self.policy_ids[0]][0]).to(**self.tpdv)
         # form bad transition mask
@@ -231,10 +248,20 @@ class QMix(Trainer):
     def prep_training(self):
         """See parent class."""
         for p_id in self.policy_ids:
+            logging.info(f"setting to train for qnet for p_id {p_id}, in training: {self.policies[p_id].q_network.training}")
             self.policies[p_id].q_network.train()
+            logging.info(f"policy {p_id} q network in training: {self.policies[p_id].q_network.training}")
+
+            logging.info(f"setting to train for TARGET qnet for p_id {p_id}, training {self.target_policies[p_id].q_network.training}")
             self.target_policies[p_id].q_network.train()
+            logging.info(f"policy {p_id} q network training: {self.target_policies[p_id].q_network.training}")
+        logging.info(f"setting to train for mixer, training: {self.mixer.training}")
         self.mixer.train()
+        logging.info(f"mixer training: {self.mixer.training}")
+        
+        logging.info(f"setting to train for TARGET mixer,training: {self.target_mixer.training}")
         self.target_mixer.train()
+        logging.info(f"target mixer training: {self.target_mixer.training}")
 
     def prep_rollout(self):
         """See parent class."""

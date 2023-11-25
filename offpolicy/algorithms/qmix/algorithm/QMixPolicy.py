@@ -56,7 +56,6 @@ class QMixPolicy(RecurrentPolicy):
             input_batch = torch.cat((obs_batch, prev_action_batch), dim=-1)
         else:
             input_batch = obs_batch
-
         q_batch, new_rnn_states = self.q_network(input_batch, rnn_states)
 
         if action_batch is not None:
