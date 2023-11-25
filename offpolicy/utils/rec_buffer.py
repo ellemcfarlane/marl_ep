@@ -227,6 +227,7 @@ class RecPolicyBuffer(object):
         """
 
         obs = _cast(self.obs[:, sample_inds])
+        print(f"obs shape in SAMPLE_INDS: {obs.shape}")
         acts = _cast(self.acts[:, sample_inds])
         if self.use_reward_normalization:
             # mean std

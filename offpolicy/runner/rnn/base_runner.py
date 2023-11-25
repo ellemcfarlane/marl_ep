@@ -92,10 +92,11 @@ class RecRunner(object):
         # no parallel envs
         self.num_envs = 1
 
-        self.epistemic_planner = config["epistemic_planner"]
+        # sets an epistemic planner if configured
+        self.epistemic_planner = config.get("epistemic_planner", None)
         # dir
         self.model_dir = self.args.model_dir
-        # loads epistemic planner if exists
+        # loads runner as an epistemic planner if epi_dir is set
         if self.args.epi_dir:
             self.model_dir = self.args.epi_dir
         else:

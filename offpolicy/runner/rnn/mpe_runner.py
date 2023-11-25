@@ -10,7 +10,6 @@ class MPERunner(RecRunner):
         super(MPERunner, self).__init__(config)
         self.collecter = self.shared_collect_rollout if self.share_policy else self.separated_collect_rollout
         # fill replay buffer with random actions
-        # fill replay buffer with random actions
         num_warmup_episodes = max((self.batch_size, self.args.num_random_episodes))
         self.warmup(num_warmup_episodes)
         self.start = time.time()
@@ -113,17 +112,54 @@ class MPERunner(RecRunner):
 
         return env_info
     
-    def add_priors_to_obs(self, obs, priors):
+    @staticmethod
+    def get_epistemic_priors(agent_id, agent_pos, other_poses):
+        """
+        Get the relative positions of other agents to the given agent.
+        :param agent_pos: (np.ndarray) position of the given agent.
+        :param other_poses: (np.ndarray) positions of other agents.
+        :return relative_pos: (np.ndarray) relative positions of other agents to the given agent.
+        """
+        epistemic_priors = []
+        for other_agent_id, pos in enumerate(other_poses):
+            if other_agent_id != agent_id:
+                relative_pos = pos - agent_pos
+                epistemic_priors.append(relative_pos)
+        return relative_pos
+    
+    def add_priors_to_obs(self, obs, agent_poses_in_plan):
         """
         Add priors to the observation.
-        :param obs: (np.ndarray) observation to add priors to.
+        :param obs: (np.ndarray) observation of shape (n_envs, n_agents, 18) to add priors to - so dim of each agent's individual obs is 18
         :param priors: (np.ndarray) priors to add to the observation.
         :return obs: (np.ndarray) observation with priors added.
         """
-        # if self.args.use_priors:
-            # add priors to the observation
-        obs = np.concatenate((obs, priors), axis=-1)
+        env_idx = 0 # only one env for now
+        for agent_id in range(self.num_agents):
+            # agent_pos = obs[0, agent_id, 5:7]
+            # get agent_pos from state
+            agent_pos = self.env.world.agents[agent_id].state.p_pos
+            priors = MPERunner.get_epistemic_priors(agent_id, agent_pos, agent_poses_in_plan)
+            exp_priors_shape = (self.num_agents-1, 2)
+            assert priors.shape == exp_priors_shape, f"priors.shape: {priors.shape}; should be {exp_priors_shape}"
+            obs[env_idx, agent_id] = np.concatenate((obs[env_idx, agent_id], priors), axis=-1)
+            exp_new_obs_shape = (self.num_envs, self.num_agents, 18 + 2*(self.num_agents-1))
+            assert obs[env_idx, agent_id].shape == exp_new_obs_shape, f"obs[env_idx, agent_id].shape: {obs[env_idx, agent_id].shape}; should be {exp_new_obs_shape}"
         return obs
+
+    def agent_poses_in_rollout_at_time(rollout_obss, t):
+        """
+        Get the agent poses in the rollout at the given time step.
+        :param rollout: (dict) rollout to get the agent poses from.
+        :param t: (int) time step to get the agent poses at.
+        :return agent_poses: (np.ndarray) agent poses at the given time step.
+        """
+        agent_poses = []
+        for agent_id in range(self.num_agents):
+            agent_obs_at_t = rollout_obss[agent_id][t]
+            agent_pos = agent_obs_at_t[5:7]
+            agent_poses.append(agent_pos)
+        return np.array(agent_poses)
 
     # for mpe-simple_spread and mpe-simple_reference  
     @torch.no_grad() 
@@ -157,15 +193,34 @@ class MPERunner(RecRunner):
         episode_dones_env = {p_id : np.ones((self.episode_length, self.num_envs, 1), dtype=np.float32) for p_id in self.policy_ids}
         episode_avail_acts = {p_id : None for p_id in self.policy_ids}
 
+        print(f"episode obs shape: {episode_obs[p_id].shape}")
         t = 0
         # TODO (elle): use shared or separated collect rollout?
         # TODO is sampling from buffer random I assume? Need to get trajectory in order.
+        # TODO: do we need to call this every time we call shared_collect_rollout?
         if self.epistemic_planner is not None:
-            plan = self.epistemic_planner.shared_collect_rollout(explore=False, training_episode=False, warmup=False).buffer.sample_ordered(self.episode_length)
+            _ = self.epistemic_planner.shared_collect_rollout(explore=False, training_episode=False, warmup=False)
+            
+            n_plans = 1
+            # agent rollouts is tuple of (obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
+            # where each component is a dict mapping p_id: component
+            agent_rollouts = self.epistemic_planner.buffer.sample_ordered(n_plans)
+            agent_rollouts_obs_comp = agent_rollouts[0][p_id]
+            # print(f"policy_0_plan: {policy_0_plan}")
+            print(f"plan's obs {policy_0_plan.shape}, ep_len {self.episode_length}")
+            print(f"plan's shared obs {policy_0_plan[0][0].shape}")
+            print(f"plan's shared obs {policy_0_plan[0][3].shape}")
+            # print(f"plan types: {[type(x) for i, x in enumerate(plan)]}")
+            # print(f"pln obs {plan[0].shape}, plan share_obs {plan[1].shape}, plan acts {plan[2].shape}, plan rewards {plan[3].shape}")
+            # get types of each too
         while t < self.episode_length:
-            share_obs = obs.reshape(self.num_envs, -1)
             if self.epistemic_planner is not None:
-                share_obs = self.add_priors_to_obs(share_obs, plan['priors'][t])
+                # plan looks like tuple of: obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
+                # step with planner's env and get positions of agents in planner's env to calculate priors
+                print(f"obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
+                agent_poses_in_plan_at_time = MPERunner.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
+                obs = self.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
+            share_obs = obs.reshape(self.num_envs, -1)
             # group observations from parallel envs into one batch to process at once
             obs_batch = np.concatenate(obs)
             # get actions for all agents to step the env

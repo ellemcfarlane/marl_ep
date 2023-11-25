@@ -15,6 +15,7 @@ echo "env is ${env}, scenario is ${scenario}, algo is ${algo}, exp is ${exp}, ma
 for seed in $(seq ${seed_max}); do
     echo "seed is ${seed}:"
     echo "warning: make sure you're running on graphics terminal with vglrun for rendering"
-    CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES} vglrun ${PYTHON_BIN} train/train_mpe.py --env_name ${env} --algorithm_name ${algo} --experiment_name ${exp} --scenario_name ${scenario} --num_agents ${num_agents} --num_landmarks ${num_landmarks} --seed ${seed} --episode_length 25 --batch_size 32 --tau 0.005 --lr 7e-4 --hard_update_interval_episode 100 --num_env_steps 10000000 --use_reward_normalization --user_name elles --model_dir ${PRETRAINED_QMIX} --play
+    # TODO (elle): add epi_dir and model_dir flags
+    CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES} vglrun ${PYTHON_BIN} train/train_mpe.py --env_name ${env} --algorithm_name ${algo} --experiment_name ${exp} --scenario_name ${scenario} --num_agents ${num_agents} --num_landmarks ${num_landmarks} --seed ${seed} --episode_length 25 --batch_size 32 --tau 0.005 --lr 7e-4 --hard_update_interval_episode 100 --num_env_steps 10000000 --use_reward_normalization --user_name elles --epi_dir ${PRETRAINED_QMIX} --play --cuda
     echo "training is done!"
 done

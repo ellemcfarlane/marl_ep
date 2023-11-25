@@ -86,8 +86,13 @@ def main(args):
     run_dir = Path(os.path.split(os.path.dirname(os.path.abspath(__file__)))[
                    0] + "/results") / all_args.env_name / all_args.scenario_name / all_args.algorithm_name / all_args.experiment_name
 
+    epi_run_dir = Path(f"{run_dir}_epi")
+    
+    
     if not run_dir.exists():
         os.makedirs(str(run_dir))
+    if not epi_run_dir.exists():
+        os.makedirs(str(epi_run_dir))
 
     if all_args.use_wandb:
         # init wandb
@@ -170,15 +175,17 @@ def main(args):
     if all_args.algorithm_name in ["qmix_ep"]:
         assert all_args.epi_dir is not None, "Must specify epi_dir for epistemic planner"
         assert all_args.model_dir is None, "Must not specify model_dir for epistemic planner"
-        ep_planner_config = {"args": all_args,
+        epi_args = deepcopy(all_args)
+        epi_args.buffer_size = 1 # only want one plan for given env
+        ep_planner_config = {"args": epi_args,
                 "policy_info": policy_info,
                 "policy_mapping_fn": policy_mapping_fn,
                 "env": deepcopy(env), # TODO (elle): double check copies correctly, else use make_train_env(all_args)
-                "eval_env": make_eval_env(all_args),
+                "eval_env": make_eval_env(epi_args),
                 "num_agents": num_agents,
                 "device": device,
                 "use_same_share_obs": True,
-                "run_dir": None,
+                "run_dir": epi_run_dir,
         }
         epistemic_planner = Runner(config=ep_planner_config)
 
@@ -192,11 +199,11 @@ def main(args):
               "use_same_share_obs": all_args.use_same_share_obs,
               "run_dir": run_dir,
               "epistemic_planner": epistemic_planner if all_args.algorithm_name in ["qmix_ep"] else None,
-              }
+    }
 
     total_num_steps = 0
     runner = Runner(config=config)
-    
+    print("running?") 
     if not all_args.play:
         while total_num_steps < all_args.num_env_steps:
             total_num_steps = runner.run()
