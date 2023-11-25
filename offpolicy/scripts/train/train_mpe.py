@@ -189,9 +189,9 @@ def main(args):
     else:
         raise NotImplementedError
 
-    # load pretrained QMIX as epistemic planner
     # total_num_steps = 0
     if all_args.epistemic and all_args.algorithm_name in ["qmix_ep"]:
+        # load pretrained QMIX as epistemic planner
         assert all_args.epi_dir is not None, "Must specify epi_dir for epistemic planner"
         epi_args = deepcopy(all_args)
         epi_args.model_dir = all_args.epi_dir

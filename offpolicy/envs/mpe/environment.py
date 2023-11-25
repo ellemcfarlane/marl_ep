@@ -95,7 +95,6 @@ class MultiAgentEnv(gym.Env):
                 self.action_space.append(total_action_space[0])
             # observation space
             obs_dim = len(observation_callback(agent, self.world))
-            logging.debug(f"EPISTEMIC? {epistemic}")
             if epistemic:
                 priors_dims_per_agent = (self.num_agents - 1) * 2
                 obs_dim += priors_dims_per_agent

@@ -238,8 +238,10 @@ class RecRunner(object):
         """
         self.trainer.prep_rollout()
         warmup_rewards = []
-        print("warm up...self.collecter(explore=True, training_episode=False, warmup=True)")
-        for _ in range((num_episodes // self.num_envs) + 1):
+        print("warm up...")
+        n_collections = 1 if (num_episodes // self.num_envs) <= 1 else (num_episodes // self.num_envs) + 1
+        logging.info(f"collecting {n_collections} episodes")
+        for _ in range(n_collections):
             env_info = self.collecter(explore=True, training_episode=False, warmup=warmup)
             warmup_rewards.append(env_info['average_episode_rewards'])
         warmup_reward = np.mean(warmup_rewards)

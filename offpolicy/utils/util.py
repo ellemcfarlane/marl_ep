@@ -15,7 +15,7 @@ import logging
 def setup_logging():
     logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d:%H:%M:%S',
-        level=logging.INFO)
+        level=logging.DEBUG)
 
 def to_torch(input):
     return torch.from_numpy(input) if type(input) == np.ndarray else input

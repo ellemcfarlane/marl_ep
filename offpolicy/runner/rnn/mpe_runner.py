@@ -16,9 +16,13 @@ class MPERunner(RecRunner):
         # fill replay buffer with random actions
         num_warmup_episodes = max((self.batch_size, self.args.num_random_episodes))
         logging.debug("mperunner.__init__.warmup")
-        if self.epistemic_planner is not None:
-            self.collect_expert_episodes(num_warmup_episodes)
+        # if no epistemic planner, then self is the epistemic planner
+        if self.epistemic_planner is None:
+            # only need to fill buffer with one episode for expert planner
+            logging.info(f"collecting {1} expert episodes for qmix")
+            self.collect_expert_episodes(1)
         else:
+            logging.info(f"collecting {num_warmup_episodes} random episodes as warmup")
             self.collect_random_episodes(num_warmup_episodes)
         self.start = time.time()
         self.log_clear()
@@ -207,6 +211,7 @@ class MPERunner(RecRunner):
         env = self.env if training_episode or warmup else self.eval_env
         # TODO (elle): what are priors at beginning?
         obs = env.reset()
+
         logging.debug(f'obs.shape at env.reset(): {obs.shape}')
         rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
         last_acts_batch = np.zeros((self.num_envs * self.num_agents, policy.output_dim), dtype=np.float32)
@@ -234,8 +239,17 @@ class MPERunner(RecRunner):
         if self.epistemic_planner is not None:
             logging.debug(f"COLLECTING PRIORS")
             assert self.epistemic_planner.epistemic_planner is None
-            # TODO (elle): don't call warmup in init for the planner otherwise have random actions in the buffer
-            # else: just don't caree shared_collect_rollout... :O
+            # check agent and landmark positions of env are same as epi_env's
+            epi_env = self.epistemic_planner.env.envs[0]
+            init_epi_agent_poses = np.array([epi_env.world.agents[i].state.p_pos for i in range(self.num_agents)])
+            init_agent_poses = np.array([env.envs[0].world.agents[i].state.p_pos for i in range(self.num_agents)])
+            init_epi_landmark_poses = np.array([epi_env.world.landmarks[i].state.p_pos for i in range(self.num_agents)])
+            init_landmark_poses = np.array([env.envs[0].world.landmarks[i].state.p_pos for i in range(self.num_agents)])
+            if not np.all(init_epi_agent_poses == init_agent_poses):
+                assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
+                assert np.all(init_epi_landmark_poses == init_landmark_poses), f"init_epi_landmark_poses: {init_epi_landmark_poses} don't match init_landmark_poses: {init_landmark_poses}"
+            else:
+                logging.info("nice, init conditions match!")
             # _ = self.epistemic_planner.shared_collect_rollout(explore=True, training_episode=False, warmup=False)
             n_plans = 1
             # agent rollouts is tuple of (obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
@@ -267,6 +281,13 @@ class MPERunner(RecRunner):
                 _, rnn_states_batch, _ = policy.get_actions(obs_batch,
                                                             last_acts_batch,
                                                             rnn_states_batch)
+            elif self.epistemic_planner is None: # self is the epistemic planner
+                # get actions with exploration noise (eps-greedy/Gaussian)
+                # TODO (elle): turn off epsilon greedy for epistemic planner collection
+                acts_batch, rnn_states_batch, _ = policy.get_actions(obs_batch,
+                                                                    last_acts_batch,
+                                                                    rnn_states_batch,
+                                                                    explore=False)
             else:
                 # get actions with exploration noise (eps-greedy/Gaussian)
                 # TODO (elle): turn off epsilon greedy for epistemic planner collection
