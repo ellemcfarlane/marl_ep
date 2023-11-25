@@ -21,9 +21,6 @@ class QMixPolicy(RecurrentPolicy):
         self.n_other_agents = self.args.num_agents - 1
         self.obs_space = policy_config["obs_space"]
         self.obs_dim = get_dim_from_space(self.obs_space)
-        # if config["use_epi_priors"] is True:
-        #     # add epistemic prior dimensions (relative position of each other agent -> 2*n_other_agents)
-        #     self.obs_dim += self.n_other_agents * 2
         self.act_space = policy_config["act_space"]
         self.act_dim = get_dim_from_space(self.act_space)
         self.output_dim = sum(self.act_dim) if isinstance(self.act_dim, np.ndarray) else self.act_dim

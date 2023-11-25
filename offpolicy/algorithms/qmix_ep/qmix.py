@@ -42,6 +42,7 @@ class QMix(Trainer):
         self.num_agents = num_agents
         self.policies = policies
         self.policy_mapping_fn = policy_mapping_fn
+        logging.info(f"policy mapping fn: {self.policy_mapping_fn}")
         self.policy_ids = sorted(list(self.policies.keys()))
         self.policy_agents = {policy_id: sorted(
             [agent_id for agent_id in range(self.num_agents) if self.policy_mapping_fn(agent_id) == policy_id])
@@ -172,7 +173,8 @@ class QMix(Trainer):
         Q_tot_target_seq = rewards + (1 - dones_env_batch) * self.args.gamma * next_step_Q_tot_seq
         # Bellman error and mask out invalid transitions
         error = (Q_tot_seq - Q_tot_target_seq.detach()) * (1 - bad_transitions_mask)
-
+        logging.info(f"error requires grad: {error.requires_grad}, error grad: {error.grad}, error grad_fn: {error.grad_fn}") 
+        logging.info(f"q_tot_seq requires grad: {Q_tot_seq.requires_grad}, q_tot_seq grad: {Q_tot_seq.grad}, q_tot_seq grad_fn: {Q_tot_seq.grad_fn}")
         if self.use_per:
             # Form updated priorities for prioritized experience replay using the Bellman error
             importance_weights = to_torch(importance_weights).to(**self.tpdv)
@@ -196,6 +198,9 @@ class QMix(Trainer):
 
         # backward pass and gradient step
         self.optimizer.zero_grad()
+        for param in self.parameters:
+            logging.debug(f"param {param.requires_grad} {param.grad}")
+        logging.info(f"loss requires grad: {loss.requires_grad}, loss grad: {loss.grad}, loss grad_fn: {loss.grad_fn}, loss {loss}")
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(self.parameters, self.args.max_grad_norm)
         self.optimizer.step()
