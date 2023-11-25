@@ -40,11 +40,9 @@ class Scenario(BaseScenario):
             agent.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
-            # print(f"agent {agent}")
         for i, landmark in enumerate(world.landmarks):
             landmark.state.p_pos = 0.8 * np.random.uniform(-1, +1, world.dim_p)
             landmark.state.p_vel = np.zeros(world.dim_p)
-            # print(f"landmark {landmark}")
         
 
     def benchmark_data(self, agent, world):

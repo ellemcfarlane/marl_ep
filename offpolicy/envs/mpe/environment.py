@@ -3,6 +3,11 @@ from gym import spaces
 from gym.envs.registration import EnvSpec
 import numpy as np
 from .multi_discrete import MultiDiscrete
+import logging
+from offpolicy.utils.util import setup_logging
+import logging
+
+setup_logging()
 
 # update bounds to center around agent
 cam_range = 2
@@ -90,12 +95,11 @@ class MultiAgentEnv(gym.Env):
                 self.action_space.append(total_action_space[0])
             # observation space
             obs_dim = len(observation_callback(agent, self.world))
-            share_obs_dim += obs_dim
-            print(f"EPISTEMIC? {epistemic}")
+            logging.debug(f"EPISTEMIC? {epistemic}")
             if epistemic:
-                epi_dim = (self.num_agents - 1) * 2
-                obs_dim += epi_dim
-                share_obs_dim += epi_dim * self.num_agents
+                priors_dims_per_agent = (self.num_agents - 1) * 2
+                obs_dim += priors_dims_per_agent
+            share_obs_dim += obs_dim
             self.observation_space.append(spaces.Box(
                 low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))  # [-inf,inf]
             agent.action.c = np.zeros(self.world.dim_c)

@@ -1,7 +1,10 @@
 import numpy as np
 from offpolicy.utils.util import get_dim_from_space
 from offpolicy.utils.segment_tree import SumSegmentTree, MinSegmentTree
+from offpolicy.utils.util import setup_logging
+import logging
 
+setup_logging()
 
 def _cast(x):
     return x.transpose(2, 0, 1, 3)
@@ -227,7 +230,7 @@ class RecPolicyBuffer(object):
         """
 
         obs = _cast(self.obs[:, sample_inds])
-        print(f"obs shape in SAMPLE_INDS: {obs.shape}")
+        logging.debug(f"obs shape in SAMPLE_INDS: {obs.shape}")
         acts = _cast(self.acts[:, sample_inds])
         if self.use_reward_normalization:
             # mean std

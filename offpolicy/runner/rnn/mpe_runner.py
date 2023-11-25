@@ -3,6 +3,10 @@ import torch
 import time
 import sys
 from offpolicy.runner.rnn.base_runner import RecRunner
+from offpolicy.utils.util import setup_logging
+import logging
+
+setup_logging()
 
 class MPERunner(RecRunner):
     """Runner class for Multiagent Particle Envs (MPE). See parent class for more information."""
@@ -57,7 +61,6 @@ class MPERunner(RecRunner):
         t = 0
         while t < self.episode_length:
             share_obs = obs.reshape(self.num_envs, -1)
-            # print(f"share_obs: {share_obs}")
             # group observations from parallel envs into one batch to process at once
             obs_batch = np.concatenate(obs)
             # get actions for all agents to step the env
@@ -148,14 +151,14 @@ class MPERunner(RecRunner):
             priors = MPERunner.get_epistemic_priors(agent_id, agent_pos, agent_poses_in_plan)
             exp_priors_shape = (self.num_agents-1, 2)
             assert priors.shape == exp_priors_shape, f"priors.shape: {priors.shape}; should be {exp_priors_shape}"
-            print(f"priors: {priors}")
+            logging.debug(f"priors: {priors}")
             # now flattern priors to add to obs
             priors = priors.flatten()
-            print(f"priors after flattening: {priors}")
+            logging.debug(f"priors after flattening: {priors}")
             assert priors.shape == (2*(self.num_agents-1),), f"priors.shape: {priors.shape} after flattening, should be {(2*(self.num_agents-1),)}"
             old_entry = obs[env_idx, agent_id]
-            print(f"old_entry.shape: {old_entry.shape}")
-            print(f"priors.shape: {priors.shape}")
+            logging.debug(f"old_entry.shape: {old_entry.shape}")
+            logging.debug(f"priors.shape: {priors.shape}")
             new_entry = np.concatenate((old_entry, priors), axis=-1)
             assert new_entry.shape == (18 + 2*(self.num_agents-1),), f"new_entry.shape: {new_entry.shape}; should be {(18 + 2*(self.num_agents-1),)}"
             modified_obs[env_idx, agent_id] = new_entry
@@ -198,7 +201,7 @@ class MPERunner(RecRunner):
         env = self.env if training_episode or warmup else self.eval_env
         # TODO (elle): what are priors at beginning?
         obs = env.reset()
-
+        logging.debug(f'obs.shape at env.reset(): {obs.shape}')
         rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
         last_acts_batch = np.zeros((self.num_envs * self.num_agents, policy.output_dim), dtype=np.float32)
 
@@ -217,7 +220,7 @@ class MPERunner(RecRunner):
         episode_dones_env = {p_id : np.ones((self.episode_length, self.num_envs, 1), dtype=np.float32) for p_id in self.policy_ids}
         episode_avail_acts = {p_id : None for p_id in self.policy_ids}
 
-        print(f"episode obs shape: {episode_obs[p_id].shape}")
+        logging.debug(f"episode obs shape: {episode_obs[p_id].shape}")
         t = 0
         # TODO (elle): use shared or separated collect rollout?
         # TODO is sampling from buffer random I assume? Need to get trajectory in order.
@@ -230,19 +233,16 @@ class MPERunner(RecRunner):
             # where each component is a dict mapping p_id: component
             agent_rollouts = self.epistemic_planner.buffer.sample_ordered(n_plans)
             agent_rollouts_obs_comp = agent_rollouts[0][p_id] # (3, 26, 1, 18) aka (n_agents, ep_len + 1, n_envs, obs_dim)
-            # print(f"policy_0_plan: {policy_0_plan}")
-            print(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
-            # print(f"plan types: {[type(x) for i, x in enumerate(plan)]}")
-            # print(f"pln obs {plan[0].shape}, plan share_obs {plan[1].shape}, plan acts {plan[2].shape}, plan rewards {plan[3].shape}")
+            logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
             # get types of each too
         while t < self.episode_length:
             if self.epistemic_planner is not None:
                 # plan looks like tuple of: obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
                 # step with planner's env and get positions of agents in planner's env to calculate priors
-                print(f"BEFORE ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
+                logging.debug(f"BEFORE ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
                 agent_poses_in_plan_at_time = self.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
                 obs = self.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
-                print(f"AFTER ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
+                logging.debug(f"AFTER ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
             share_obs = obs.reshape(self.num_envs, -1)
             if self.epistemic_planner is not None:
                 exp_shared_obs_shape = (self.num_envs, self.num_agents, 18 + 2*(self.num_agents-1))
@@ -281,6 +281,7 @@ class MPERunner(RecRunner):
             terminate_episodes = np.any(dones_env) or t == self.episode_length - 1
 
             episode_obs[p_id][t] = obs
+            logging.debug(f"added obs in loop at time {t}, shape {obs.shape}")
             episode_share_obs[p_id][t] = share_obs
             episode_acts[p_id][t] = np.stack(env_acts)
             episode_rewards[p_id][t] = rewards
@@ -289,10 +290,14 @@ class MPERunner(RecRunner):
             t += 1
 
             obs = next_obs
+            logging.debug(f"next obs shape {obs.shape}")
 
             if terminate_episodes:
                 break
 
+        if self.epistemic_planner is not None:
+            agent_poses_in_plan_at_time = self.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
+            obs = self.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
         episode_obs[p_id][t] = obs
         episode_share_obs[p_id][t] = obs.reshape(self.num_envs, -1)
 

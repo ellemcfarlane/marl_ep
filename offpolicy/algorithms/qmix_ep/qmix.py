@@ -7,6 +7,10 @@ from offpolicy.algorithms.base.trainer import Trainer
 from offpolicy.utils.popart import PopArt
 import numpy as np
 from offpolicy.runner.rnn.mpe_runner import MPERunner
+from offpolicy.utils.util import setup_logging
+import logging
+
+setup_logging()
 
 class QMix(Trainer):
     def __init__(self, args, num_agents, policies, policy_mapping_fn, device=torch.device("cuda:0"), episode_length=None, vdn=False, epistemic_planner=None):

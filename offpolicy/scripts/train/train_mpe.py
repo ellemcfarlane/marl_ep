@@ -11,6 +11,10 @@ from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
 from offpolicy.envs.mpe.MPE_Env import MPEEnv
 from offpolicy.envs.env_wrappers import DummyVecEnv, SubprocVecEnv
 from copy import deepcopy
+from offpolicy.utils.util import setup_logging
+import logging
+
+setup_logging()
 
 def make_train_env(all_args):
     def get_env_fn(rank):
@@ -71,25 +75,45 @@ def add_epistem_prior_dims(policy_info, args) -> None:
         for agent_id in range(args.num_agents):
             policy_info['policy_' + str(agent_id)]['cent_obs_dim'] += epi_dims * args.num_agents
             policy_info['policy_' + str(agent_id)]['obs_space'] += epi_dims
-            
+
+def get_policy_info_from_env(env, args):
+    if args.share_policy:
+        policy_info = {
+            'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),
+                         "cent_act_dim": get_cent_act_dim(env.action_space),
+                         "obs_space": env.observation_space[0],
+                         "share_obs_space": env.share_observation_space[0],
+                         "act_space": env.action_space[0]}
+        }
+    else:
+        policy_info = {
+            'policy_' + str(agent_id): {"cent_obs_dim": get_dim_from_space(env.share_observation_space[agent_id]),
+                                        "cent_act_dim": get_cent_act_dim(env.action_space),
+                                        "obs_space": env.observation_space[agent_id],
+                                        "share_obs_space": env.share_observation_space[agent_id],
+                                        "act_space": env.action_space[agent_id]}
+            for agent_id in range(num_agents)
+        }
+
+    return policy_info
 
 def main(args):
     parser = get_config()
     all_args = parse_args(args, parser)
-    print(f"all_args: {all_args}")
-    print(f"cuda avail? {torch.cuda.is_available()}")
+    logging.info(f"all_args: {all_args}")
+    logging.info(f"cuda avail? {torch.cuda.is_available()}")
     if all_args.dry_run:
         exit()
     # cuda and # threads
     if all_args.cuda and torch.cuda.is_available():
-        print("choose to use gpu...")
+        logging.info("choose to use gpu...")
         device = torch.device("cuda:0")
         torch.set_num_threads(all_args.n_training_threads)
         if all_args.cuda_deterministic:
             torch.backends.cudnn.benchmark = False
             torch.backends.cudnn.deterministic = True
     else:
-        print("choose to use cpu...")
+        logging.info("choose to use cpu...")
         device = torch.device("cpu")
         torch.set_num_threads(all_args.n_training_threads)
 
@@ -146,26 +170,10 @@ def main(args):
     num_agents = all_args.num_agents
 
     # create policies and mapping fn
+    policy_info = get_policy_info_from_env(env, all_args)
     if all_args.share_policy:
-        policy_info = {
-            'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),
-                         "cent_act_dim": get_cent_act_dim(env.action_space),
-                         "obs_space": env.observation_space[0],
-                         "share_obs_space": env.share_observation_space[0],
-                         "act_space": env.action_space[0]}
-        }
-
         def policy_mapping_fn(id): return 'policy_0'
     else:
-        policy_info = {
-            'policy_' + str(agent_id): {"cent_obs_dim": get_dim_from_space(env.share_observation_space[agent_id]),
-                                        "cent_act_dim": get_cent_act_dim(env.action_space),
-                                        "obs_space": env.observation_space[agent_id],
-                                        "share_obs_space": env.share_observation_space[agent_id],
-                                        "act_space": env.action_space[agent_id]}
-            for agent_id in range(num_agents)
-        }
-
         def policy_mapping_fn(agent_id): return 'policy_' + str(agent_id)
 
     # choose algo
@@ -190,12 +198,15 @@ def main(args):
         epi_args.buffer_size = 1 # only want one plan for given env
         # config for model that was not trained with priors but that will be used to get the priors, i.e. serve as epistemic planner
         epi_args.epistemic = False
-        print(f"epistemic planner args: {epi_args}")
+        logging.info(f"epistemic planner args: {epi_args}")
+        epi_env = make_train_env(epi_args)
+        epi_eval_env = make_eval_env(epi_args)
+        epi_policy_info = get_policy_info_from_env(epi_env, epi_args)
         ep_planner_config = {"args": epi_args,
-                "policy_info": policy_info,
-                "policy_mapping_fn": policy_mapping_fn,
-                "env": make_eval_env(epi_args), # TODO (elle): double check copies correctly, else use make_train_env(all_args)
-                "eval_env": make_eval_env(epi_args),
+                "policy_info": epi_policy_info,
+                "policy_mapping_fn": policy_mapping_fn, # TODO (elle): will differ for epistemic planner (centralised, so 1 policy) vs qmix (decentralised, so num_agents policies)
+                "env": epi_env, # TODO (elle): double check copies correctly, else use make_train_env(all_args)
+                "eval_env": epi_eval_env,
                 "num_agents": num_agents,
                 "device": device,
                 "use_same_share_obs": True,
@@ -206,8 +217,9 @@ def main(args):
 
     # config for model that will now be trained with priors
     assert all_args.model_dir is None, "Must not specify model_dir if using epistemic planner"
+    assert all_args.epistemic, "Must set epistemic to True if using epistemic planner"
     # update policy dimensions to include epistemic prior dims
-    print(f"training qmix args: {all_args}")
+    logging.info(f"training qmix args: {all_args}")
     config = {"args": all_args,
               "policy_info": policy_info,
               "policy_mapping_fn": policy_mapping_fn,
