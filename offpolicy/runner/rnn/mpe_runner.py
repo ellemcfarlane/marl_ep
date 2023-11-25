@@ -123,9 +123,11 @@ class MPERunner(RecRunner):
         epistemic_priors = []
         for other_agent_id, pos in enumerate(other_poses):
             if other_agent_id != agent_id:
+                assert pos.shape == (2,), f"pos.shape: {pos.shape}; should be (2,)"
+                assert agent_pos.shape == (2,), f"agent_pos.shape: {agent_pos.shape}; should be (2,)"
                 relative_pos = pos - agent_pos
                 epistemic_priors.append(relative_pos)
-        return relative_pos
+        return np.array(epistemic_priors)
     
     def add_priors_to_obs(self, obs, agent_poses_in_plan):
         """
@@ -135,29 +137,45 @@ class MPERunner(RecRunner):
         :return obs: (np.ndarray) observation with priors added.
         """
         env_idx = 0 # only one env for now
+        # make modified_obs with same shape as obs but with priors added
+        modified_obs = np.zeros((self.num_envs, self.num_agents, 18 + 2*(self.num_agents-1)))
         for agent_id in range(self.num_agents):
             # agent_pos = obs[0, agent_id, 5:7]
             # get agent_pos from state
-            agent_pos = self.env.world.agents[agent_id].state.p_pos
+            # env is vectorized env, so env.envs[0] is the actual env when n_envs = 1
+            agent_pos = self.env.envs[env_idx].world.agents[agent_id].state.p_pos
+            assert agent_poses_in_plan.shape == (self.num_agents, 2), f"agent_poses_in_plan.shape: {agent_poses_in_plan.shape}; should be {(self.num_agents, 2)}"
             priors = MPERunner.get_epistemic_priors(agent_id, agent_pos, agent_poses_in_plan)
             exp_priors_shape = (self.num_agents-1, 2)
             assert priors.shape == exp_priors_shape, f"priors.shape: {priors.shape}; should be {exp_priors_shape}"
-            obs[env_idx, agent_id] = np.concatenate((obs[env_idx, agent_id], priors), axis=-1)
-            exp_new_obs_shape = (self.num_envs, self.num_agents, 18 + 2*(self.num_agents-1))
-            assert obs[env_idx, agent_id].shape == exp_new_obs_shape, f"obs[env_idx, agent_id].shape: {obs[env_idx, agent_id].shape}; should be {exp_new_obs_shape}"
-        return obs
+            print(f"priors: {priors}")
+            # now flattern priors to add to obs
+            priors = priors.flatten()
+            print(f"priors after flattening: {priors}")
+            assert priors.shape == (2*(self.num_agents-1),), f"priors.shape: {priors.shape} after flattening, should be {(2*(self.num_agents-1),)}"
+            old_entry = obs[env_idx, agent_id]
+            print(f"old_entry.shape: {old_entry.shape}")
+            print(f"priors.shape: {priors.shape}")
+            new_entry = np.concatenate((old_entry, priors), axis=-1)
+            assert new_entry.shape == (18 + 2*(self.num_agents-1),), f"new_entry.shape: {new_entry.shape}; should be {(18 + 2*(self.num_agents-1),)}"
+            modified_obs[env_idx, agent_id] = new_entry
+        return modified_obs
 
-    def agent_poses_in_rollout_at_time(rollout_obss, t):
+    def agent_poses_in_rollout_at_time(self, rollout_obss, t):
         """
         Get the agent poses in the rollout at the given time step.
-        :param rollout: (dict) rollout to get the agent poses from.
+        :param rollout_obss: (ndarray) of (n_agents, ep_len + 1, n_envs, obs_dim)
         :param t: (int) time step to get the agent poses at.
         :return agent_poses: (np.ndarray) agent poses at the given time step.
         """
         agent_poses = []
+        env_idx = 0 # only one env for now
         for agent_id in range(self.num_agents):
-            agent_obs_at_t = rollout_obss[agent_id][t]
-            agent_pos = agent_obs_at_t[5:7]
+            agent_obs_at_t = rollout_obss[agent_id][t][env_idx]
+            assert agent_obs_at_t.shape == (18,), f"agent_obs_at_t.shape: {agent_obs_at_t.shape}; should be (18,)"
+            # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
+            # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
+            agent_pos = agent_obs_at_t[2:4]
             agent_poses.append(agent_pos)
         return np.array(agent_poses)
 
@@ -205,11 +223,9 @@ class MPERunner(RecRunner):
             # agent rollouts is tuple of (obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
             # where each component is a dict mapping p_id: component
             agent_rollouts = self.epistemic_planner.buffer.sample_ordered(n_plans)
-            agent_rollouts_obs_comp = agent_rollouts[0][p_id]
+            agent_rollouts_obs_comp = agent_rollouts[0][p_id] # (3, 26, 1, 18) aka (n_agents, ep_len + 1, n_envs, obs_dim)
             # print(f"policy_0_plan: {policy_0_plan}")
-            print(f"plan's obs {policy_0_plan.shape}, ep_len {self.episode_length}")
-            print(f"plan's shared obs {policy_0_plan[0][0].shape}")
-            print(f"plan's shared obs {policy_0_plan[0][3].shape}")
+            print(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
             # print(f"plan types: {[type(x) for i, x in enumerate(plan)]}")
             # print(f"pln obs {plan[0].shape}, plan share_obs {plan[1].shape}, plan acts {plan[2].shape}, plan rewards {plan[3].shape}")
             # get types of each too
@@ -218,7 +234,7 @@ class MPERunner(RecRunner):
                 # plan looks like tuple of: obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
                 # step with planner's env and get positions of agents in planner's env to calculate priors
                 print(f"obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
-                agent_poses_in_plan_at_time = MPERunner.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
+                agent_poses_in_plan_at_time = self.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
                 obs = self.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
             share_obs = obs.reshape(self.num_envs, -1)
             # group observations from parallel envs into one batch to process at once
