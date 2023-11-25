@@ -6,7 +6,7 @@ train-mad:
 
 train-ep:
 	cd offpolicy/scripts/; \
-	chmod +x ./train_mpe_qmix.sh; \
+	chmod +x ./train_mpe_qmix_ep.sh; \
 	./train_mpe_qmix_ep.sh
 
 play-ep:

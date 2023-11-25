@@ -61,6 +61,17 @@ def parse_args(args, parser):
 
     return all_args
 
+# modifies args
+def add_epistem_prior_dims(policy_info, args) -> None:
+    epi_dims = (args.num_agents - 1) * 2
+    if args.share_policy:
+        policy_info['policy_0']['cent_obs_dim'] += epi_dims * args.num_agents
+        policy_info['policy_0']['obs_space'] += epi_dims
+    else:
+        for agent_id in range(args.num_agents):
+            policy_info['policy_' + str(agent_id)]['cent_obs_dim'] += epi_dims * args.num_agents
+            policy_info['policy_' + str(agent_id)]['obs_space'] += epi_dims
+            
 
 def main(args):
     parser = get_config()
@@ -174,21 +185,29 @@ def main(args):
     # total_num_steps = 0
     if all_args.algorithm_name in ["qmix_ep"]:
         assert all_args.epi_dir is not None, "Must specify epi_dir for epistemic planner"
-        assert all_args.model_dir is None, "Must not specify model_dir for epistemic planner"
         epi_args = deepcopy(all_args)
+        epi_args.model_dir = all_args.epi_dir
         epi_args.buffer_size = 1 # only want one plan for given env
+        # config for model that was not trained with priors but that will be used to get the priors, i.e. serve as epistemic planner
+        epi_args.epistemic = False
+        print(f"epistemic planner args: {epi_args}")
         ep_planner_config = {"args": epi_args,
                 "policy_info": policy_info,
                 "policy_mapping_fn": policy_mapping_fn,
-                "env": deepcopy(env), # TODO (elle): double check copies correctly, else use make_train_env(all_args)
+                "env": make_eval_env(epi_args), # TODO (elle): double check copies correctly, else use make_train_env(all_args)
                 "eval_env": make_eval_env(epi_args),
                 "num_agents": num_agents,
                 "device": device,
                 "use_same_share_obs": True,
                 "run_dir": epi_run_dir,
+                "use_epi_priors": False,
         }
         epistemic_planner = Runner(config=ep_planner_config)
 
+    # config for model that will now be trained with priors
+    assert all_args.model_dir is None, "Must not specify model_dir if using epistemic planner"
+    # update policy dimensions to include epistemic prior dims
+    print(f"training qmix args: {all_args}")
     config = {"args": all_args,
               "policy_info": policy_info,
               "policy_mapping_fn": policy_mapping_fn,
@@ -196,9 +215,10 @@ def main(args):
               "eval_env": make_eval_env(all_args), # TODO fix to generalize to more than qmix and qmix_ep i.e. eval_env = <>
               "num_agents": num_agents,
               "device": device,
-              "use_same_share_obs": all_args.use_same_share_obs,
+              "use_same_share_obs": all_args.use_same_share_obs, # TODO: set false!
               "run_dir": run_dir,
               "epistemic_planner": epistemic_planner if all_args.algorithm_name in ["qmix_ep"] else None,
+              "use_epi_priors": True,
     }
 
     total_num_steps = 0

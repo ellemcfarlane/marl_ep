@@ -17,7 +17,7 @@ class MultiAgentEnv(gym.Env):
     def __init__(self, world, reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
                  done_callback=None, post_step_callback=None,
-                 shared_viewer=True, discrete_action=True):
+                 shared_viewer=True, discrete_action=True, epistemic=False):
 
         self.world = world
         self.world_length = self.world.world_length
@@ -91,6 +91,11 @@ class MultiAgentEnv(gym.Env):
             # observation space
             obs_dim = len(observation_callback(agent, self.world))
             share_obs_dim += obs_dim
+            print(f"EPISTEMIC? {epistemic}")
+            if epistemic:
+                epi_dim = (self.num_agents - 1) * 2
+                obs_dim += epi_dim
+                share_obs_dim += epi_dim * self.num_agents
             self.observation_space.append(spaces.Box(
                 low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))  # [-inf,inf]
             agent.action.c = np.zeros(self.world.dim_c)

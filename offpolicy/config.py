@@ -7,7 +7,8 @@ def get_config():
     # if set, just prints all args and exits
     parser.add_argument('--dry_run', action='store_true', default=False)
     parser.add_argument('--play', action='store_true', default=False)
-
+    # add epistemic boolean
+    parser.add_argument('--epistemic', action='store_true', default=False)
     # prepare parameters
     parser.add_argument("--algorithm_name", type=str, default="rmatd3", choices=[
                         "rmatd3", "rmaddpg", "rmasac", "qmix", "qmix_ep", "vdn", "matd3", "maddpg", "masac", "mqmix", "mvdn"])

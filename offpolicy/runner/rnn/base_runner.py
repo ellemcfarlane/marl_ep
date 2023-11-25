@@ -94,13 +94,7 @@ class RecRunner(object):
 
         # sets an epistemic planner if configured
         self.epistemic_planner = config.get("epistemic_planner", None)
-        # dir
         self.model_dir = self.args.model_dir
-        # loads runner as an epistemic planner if epi_dir is set
-        if self.args.epi_dir:
-            self.model_dir = self.args.epi_dir
-        else:
-            self.model_dir = self.args.model_dir
         if self.use_wandb:
             self.save_dir = str(wandb.run.dir)
         else:
