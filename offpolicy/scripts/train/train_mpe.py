@@ -202,6 +202,18 @@ def main(args):
         epi_env = make_train_env(epi_args)
         epi_eval_env = make_eval_env(epi_args)
         epi_policy_info = get_policy_info_from_env(epi_env, epi_args)
+
+        init_epi_agent_poses = np.array([epi_env.envs[0].world.agents[i].state.p_pos for i in range(all_args.num_agents)])
+        init_agent_poses = np.array([env.envs[0].world.agents[i].state.p_pos for i in range(all_args.num_agents)])
+        init_epi_landmark_poses = np.array([epi_env.envs[0].world.landmarks[i].state.p_pos for i in range(all_args.num_agents)])
+        init_landmark_poses = np.array([env.envs[0].world.landmarks[i].state.p_pos for i in range(all_args.num_agents)])
+
+        if not np.all(init_epi_agent_poses == init_agent_poses) or not np.all(init_epi_landmark_poses == init_landmark_poses):
+            assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
+            assert np.all(init_epi_landmark_poses == init_landmark_poses), f"init_epi_landmark_poses: {init_epi_landmark_poses} don't match init_landmark_poses: {init_landmark_poses}"
+        else:
+            logging.info("congrats!!! init conds match between epi env and normal env :D")
+
         ep_planner_config = {
             "args": epi_args,
             "policy_info": epi_policy_info,

@@ -211,7 +211,9 @@ class MPERunner(RecRunner):
         env = self.env if training_episode or warmup else self.eval_env
         # TODO (elle): what are priors at beginning?
         obs = env.reset()
-
+        if self.epistemic_planner is not None:
+            # TODO: also call the planner to replace buffer with new plan from init cond!
+            self.epistemic_planner.env.reset()
         logging.debug(f'obs.shape at env.reset(): {obs.shape}')
         rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
         last_acts_batch = np.zeros((self.num_envs * self.num_agents, policy.output_dim), dtype=np.float32)
