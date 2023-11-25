@@ -206,8 +206,8 @@ class QMix(Trainer):
         # backward pass and gradient step
         self.optimizer.zero_grad()
         for param in self.parameters:
-            logging.debug(f"param {param.requires_grad} {param.grad}")
-        logging.debug(f"loss requires grad: {loss.requires_grad}, loss grad: {loss.grad}, loss grad_fn: {loss.grad_fn}, loss {loss}")
+            logging.debug(f"param {param.requires_grad}")
+        logging.debug(f"loss requires grad: {loss.requires_grad}, loss grad_fn: {loss.grad_fn}, loss {loss}")
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(self.parameters, self.args.max_grad_norm)
         self.optimizer.step()
