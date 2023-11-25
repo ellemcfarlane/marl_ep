@@ -187,21 +187,21 @@ class RecRunner(object):
     def run(self):
         """Collect a training episode and perform appropriate training, saving, logging, and evaluation steps."""
         # collect data
-        logging.info("base_runner.run")
-        logging.info("base_runner.trainer.prep_rollout")
+        logging.debug("base_runner.run")
+        logging.debug("base_runner.trainer.prep_rollout")
         self.trainer.prep_rollout()
-        logging.info("base_runner.collecter(explore=True, training_episode=True, warmup=False")
-        logging.info(f"self.collecter: {self.collecter}")
+        logging.debug("base_runner.collecter(explore=True, training_episode=True, warmup=False")
+        logging.debug(f"self.collecter: {self.collecter}")
         env_info = self.collecter(explore=True, training_episode=True, warmup=False)
-        logging.info(f"after collecting {self.num_episodes_collected} episodes")
+        logging.debug(f"after collecting {self.num_episodes_collected} episodes")
         for k, v in env_info.items():
             self.env_infos[k].append(v)
 
         # train
         if ((self.num_episodes_collected - self.last_train_episode) / self.train_interval_episode) >= 1 or self.last_train_episode == 0:
-            logging.info("base_runner.train (should be batch_train_q)")
+            logging.debug("base_runner.train (should be batch_train_q)")
             self.train()
-            logging.info("base_runner.train done")
+            logging.debug("base_runner.train done")
             self.total_train_steps += 1
             self.last_train_episode = self.num_episodes_collected
 
@@ -217,31 +217,37 @@ class RecRunner(object):
 
         # eval
         if self.use_eval and ((self.total_env_steps - self.last_eval_T) / self.eval_interval) >= 1:
-            logging.info("base_runner.eval")
+            logging.debug("base_runner.eval")
             self.eval()
-            logging.info("base_runn.eval done")
+            logging.debug("base_runn.eval done")
             self.last_eval_T = self.total_env_steps
 
         return self.total_env_steps
     
-    def warmup(self, num_warmup_episodes):
+    def collect_random_episodes(self, num_episodes):
+        self.collect_episodes(num_episodes, warmup=True)
+    
+    def collect_expert_episodes(self, num_episodes):
+        self.collect_episodes(num_episodes, warmup=False)
+
+    def collect_episodes(self, num_episodes, warmup):
         """
         Fill replay buffer with enough episodes to begin training.
 
-        :param: num_warmup_episodes (int): number of warmup episodes to collect.
+        :param: num_episodes (int): number of warmup episodes to collect.
         """
         self.trainer.prep_rollout()
         warmup_rewards = []
         print("warm up...self.collecter(explore=True, training_episode=False, warmup=True)")
-        for _ in range((num_warmup_episodes // self.num_envs) + 1):
-            env_info = self.collecter(explore=True, training_episode=False, warmup=True)
+        for _ in range((num_episodes // self.num_envs) + 1):
+            env_info = self.collecter(explore=True, training_episode=False, warmup=warmup)
             warmup_rewards.append(env_info['average_episode_rewards'])
         warmup_reward = np.mean(warmup_rewards)
         print("warmup average episode rewards: {}".format(warmup_reward))
 
     def batch_train(self):
         """Do a gradient update for all policies."""
-        logging.info("base_runner.batch_train -> self.trainer.prep_training")
+        logging.debug("base_runner.batch_train -> self.trainer.prep_training")
         self.trainer.prep_training()
 
         # gradient updates
@@ -275,23 +281,23 @@ class RecRunner(object):
 
     def batch_train_q(self):
         """Do a q-learning update to policy (used for QMix and VDN)."""
-        logging.info("base_runner.batch_train_q -> self.trainer.prep_training")
-        logging.info(f"trainer (shold be QMIX): {self.trainer}")
+        logging.debug("base_runner.batch_train_q -> self.trainer.prep_training")
+        logging.debug(f"trainer (shold be QMIX): {self.trainer}")
         self.trainer.prep_training()
         # gradient updates
         self.train_infos = []
 
         for p_id in self.policy_ids:
-            logging.info(f"use_per {self.use_per}")
+            logging.debug(f"use_per {self.use_per}")
             if self.use_per:
                 beta = self.beta_anneal.eval(self.total_train_steps)
                 sample = self.buffer.sample(self.batch_size, beta, p_id)
             else:
                 sample = self.buffer.sample(self.batch_size)
-            logging.info(f"batch sample size {len(sample)}")
-            logging.info(f"p_id {p_id} base_runner.batch_train_q -> self.trainer.train_policy_on_batch")
+            logging.debug(f"batch sample size {len(sample)}")
+            logging.debug(f"p_id {p_id} base_runner.batch_train_q -> self.trainer.train_policy_on_batch")
             train_info, new_priorities, idxes = self.trainer.train_policy_on_batch(sample)
-            logging.info("training on batch done")
+            logging.debug("training on batch done")
 
             if self.use_per:
                 self.buffer.update_priorities(idxes, new_priorities, p_id)

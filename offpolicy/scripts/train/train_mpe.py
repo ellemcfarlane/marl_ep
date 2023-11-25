@@ -191,67 +191,69 @@ def main(args):
 
     # load pretrained QMIX as epistemic planner
     # total_num_steps = 0
-    if all_args.epistemic:
-        if all_args.algorithm_name in ["qmix_ep"]:
-            assert all_args.epi_dir is not None, "Must specify epi_dir for epistemic planner"
-            epi_args = deepcopy(all_args)
-            epi_args.model_dir = all_args.epi_dir
-            epi_args.buffer_size = 1 # only want one plan for given env
-            # config for model that was not trained with priors but that will be used to get the priors, i.e. serve as epistemic planner
-            epi_args.epistemic = False # this is pretrained model, so not don't want to use epistemic priors
-            logging.info(f"epistemic planner args: {epi_args}")
-            epi_env = make_train_env(epi_args)
-            epi_eval_env = make_eval_env(epi_args)
-            epi_policy_info = get_policy_info_from_env(epi_env, epi_args)
-            ep_planner_config = {"args": epi_args,
-                    "policy_info": epi_policy_info,
-                    "policy_mapping_fn": policy_mapping_fn, # TODO (elle): will differ for epistemic planner (centralised, so 1 policy) vs qmix (decentralised, so num_agents policies)
-                    "env": epi_env, # TODO (elle): double check copies correctly, else use make_train_env(all_args)
-                    "eval_env": epi_eval_env,
-                    "num_agents": num_agents,
-                    "device": device,
-                    "use_same_share_obs": True,
-                    "run_dir": epi_run_dir,
-                    "use_epi_priors": False,
-            }
-            epistemic_planner = Runner(config=ep_planner_config)
-
+    if all_args.epistemic and all_args.algorithm_name in ["qmix_ep"]:
+        assert all_args.epi_dir is not None, "Must specify epi_dir for epistemic planner"
+        epi_args = deepcopy(all_args)
+        epi_args.model_dir = all_args.epi_dir
+        epi_args.buffer_size = 1 # only want one plan for given env
+        # config for model that was not trained with priors but that will be used to get the priors, i.e. serve as epistemic planner
+        epi_args.epistemic = False # this is pretrained model, so not don't want to use epistemic priors
+        logging.info(f"epistemic planner args: {epi_args}")
+        epi_env = make_train_env(epi_args)
+        epi_eval_env = make_eval_env(epi_args)
+        epi_policy_info = get_policy_info_from_env(epi_env, epi_args)
+        ep_planner_config = {
+            "args": epi_args,
+            "policy_info": epi_policy_info,
+            "policy_mapping_fn": policy_mapping_fn, # TODO (elle): will differ for epistemic planner (centralised, so 1 policy) vs qmix (decentralised, so num_agents policies)
+            "env": epi_env, # TODO (elle): double check copies correctly, else use make_train_env(all_args)
+            "eval_env": epi_eval_env,
+            "num_agents": num_agents,
+            "device": device,
+            "use_same_share_obs": True,
+            "run_dir": epi_run_dir,
+            "use_epi_priors": False,
+        }
+        epistemic_planner = Runner(config=ep_planner_config)
+        # epistemic_planner = "dummy planner"
         # config for model that will now be trained with priors
         assert all_args.model_dir is None, "Must not specify model_dir if using epistemic planner"
         # update policy dimensions to include epistemic prior dims
         logging.info(f"training qmix args: {all_args}")
-        config = {"args": all_args,
-                "policy_info": policy_info,
-                "policy_mapping_fn": policy_mapping_fn,
-                "env": env,
-                "eval_env": make_eval_env(all_args), # TODO fix to generalize to more than qmix and qmix_ep i.e. eval_env = <>
-                "num_agents": num_agents,
-                "device": device,
-                "use_same_share_obs": all_args.use_same_share_obs, # TODO: set false!
-                "run_dir": run_dir,
-                "epistemic_planner": epistemic_planner if all_args.algorithm_name in ["qmix_ep"] else None,
-                "use_epi_priors": True,
+        config = {
+            "args": all_args,
+            "policy_info": policy_info,
+            "policy_mapping_fn": policy_mapping_fn,
+            "env": env,
+            "eval_env": make_eval_env(all_args), # TODO fix to generalize to more than qmix and qmix_ep i.e. eval_env = <>
+            "num_agents": num_agents,
+            "device": device,
+            "use_same_share_obs": all_args.use_same_share_obs, # TODO: set false!
+            "run_dir": run_dir,
+            "epistemic_planner": epistemic_planner,
+            "use_epi_priors": True,
         }
     else:
-        config = {"args": all_args,
-                "policy_info": policy_info,
-                "policy_mapping_fn": policy_mapping_fn,
-                "env": env,
-                "eval_env": eval_env,
-                "num_agents": num_agents,
-                "device": device,
-                "use_same_share_obs": all_args.use_same_share_obs,
-                "run_dir": run_dir
-                }
+        config = {
+            "args": all_args,
+            "policy_info": policy_info,
+            "policy_mapping_fn": policy_mapping_fn,
+            "env": env,
+            "eval_env": eval_env,
+            "num_agents": num_agents,
+            "device": device,
+            "use_same_share_obs": all_args.use_same_share_obs,
+            "run_dir": run_dir
+        }
 
     total_num_steps = 0
     runner = Runner(config=config)
     print("running?") 
     if not all_args.play:
         while total_num_steps < all_args.num_env_steps:
-            logging.info("calling runner.run()")
+            logging.debug("calling runner.run()")
             total_num_steps = runner.run()
-            logging.info(".run() done")
+            logging.debug(".run() done")
     else:
         runner.play()
     env.close()

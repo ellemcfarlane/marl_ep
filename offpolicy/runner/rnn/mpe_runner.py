@@ -15,14 +15,17 @@ class MPERunner(RecRunner):
         self.collecter = self.shared_collect_rollout if self.share_policy else self.separated_collect_rollout
         # fill replay buffer with random actions
         num_warmup_episodes = max((self.batch_size, self.args.num_random_episodes))
-        logging.info("mperunner.__init__.warmup")
-        self.warmup(num_warmup_episodes)
+        logging.debug("mperunner.__init__.warmup")
+        if self.epistemic_planner is not None:
+            self.collect_expert_episodes(num_warmup_episodes)
+        else:
+            self.collect_random_episodes(num_warmup_episodes)
         self.start = time.time()
         self.log_clear()
     
     def eval(self):
         """Collect episodes to evaluate the policy."""
-        logging.info("mperunner.eval.prep_rollout")
+        logging.debug("mperunner.eval.prep_rollout")
         self.trainer.prep_rollout()
         eval_infos = {}
         eval_infos['average_episode_rewards'] = []
@@ -195,7 +198,7 @@ class MPERunner(RecRunner):
 
         :return env_info: (dict) contains information about the rollout (total rewards, etc).
         """
-        logging.info("mperunner.shared_collect_rollout")
+        logging.debug("mperunner.shared_collect_rollout")
         env_info = {}
         # only 1 policy since all agents share weights
         p_id = "policy_0"
@@ -229,15 +232,17 @@ class MPERunner(RecRunner):
         # TODO is sampling from buffer random I assume? Need to get trajectory in order.
         # TODO: do we need to call this every time we call shared_collect_rollout?
         if self.epistemic_planner is not None:
-            logging.info(f"COLLECTING PRIORS")
-            _ = self.epistemic_planner.shared_collect_rollout(explore=False, training_episode=False, warmup=False)
-            
+            logging.debug(f"COLLECTING PRIORS")
+            assert self.epistemic_planner.epistemic_planner is None
+            # TODO (elle): don't call warmup in init for the planner otherwise have random actions in the buffer
+            # else: just don't caree shared_collect_rollout... :O
+            # _ = self.epistemic_planner.shared_collect_rollout(explore=True, training_episode=False, warmup=False)
             n_plans = 1
             # agent rollouts is tuple of (obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
             # where each component is a dict mapping p_id: component
             agent_rollouts = self.epistemic_planner.buffer.sample_ordered(n_plans)
             agent_rollouts_obs_comp = agent_rollouts[0][p_id] # (3, 26, 1, 18) aka (n_agents, ep_len + 1, n_envs, obs_dim)
-            logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
+            # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
             # get types of each too
         while t < self.episode_length:
             if self.epistemic_planner is not None:
@@ -245,6 +250,7 @@ class MPERunner(RecRunner):
                 # step with planner's env and get positions of agents in planner's env to calculate priors
                 logging.debug(f"BEFORE ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
                 agent_poses_in_plan_at_time = self.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
+                # agent_poses_in_plan_at_time = np.array([[0,0], [0,0], [0,0]])
                 obs = self.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
                 logging.debug(f"AFTER ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
             share_obs = obs.reshape(self.num_envs, -1)
@@ -263,6 +269,7 @@ class MPERunner(RecRunner):
                                                             rnn_states_batch)
             else:
                 # get actions with exploration noise (eps-greedy/Gaussian)
+                # TODO (elle): turn off epsilon greedy for epistemic planner collection
                 acts_batch, rnn_states_batch, _ = policy.get_actions(obs_batch,
                                                                     last_acts_batch,
                                                                     rnn_states_batch,

@@ -3,6 +3,7 @@ from .mlp import MLPBase
 from offpolicy.utils.util import setup_logging
 import logging
 import inspect
+import torch
 
 setup_logging()
 
@@ -40,10 +41,7 @@ class RNNBase(MLPBase):
             # log caller of this function
             stack = inspect.currentframe()
             stack = inspect.getouterframes(stack, 2)
-            # logging.info(f"!!!!!!!!!!!!!BEFOREx: {x.shape}, requires_grad: {x.requires_grad}!!!!!!!!!!!")
             x = self.feature_norm(x)
-            # print(self.feature_norm)
-            # logging.info(f"!!!!!!!!!!!!!AFTER x: {x.shape}, requires_grad: {x.requires_grad}!!!!!!!!!!!")
 
         if self._use_conv1d:
             batch_size = x.size(0)

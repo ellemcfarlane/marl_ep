@@ -67,5 +67,4 @@ class AgentQFunction(nn.Module):
 
         # pass outputs through linear layer
         q_outs = self.q(rnn_outs, no_sequence)
-        # logging.info(f"!!!!!!!!!!!!!q_outs: {q_outs.shape}, requires_grad: {q_outs.requires_grad}!!!!!!!!!!!")
         return q_outs, h_final

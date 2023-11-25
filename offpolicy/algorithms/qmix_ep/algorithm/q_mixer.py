@@ -75,7 +75,6 @@ class QMixer(nn.Module):
          :param states: (torch.Tensor) state input to the hypernetworks.
          :return Q_tot: (torch.Tensor) computed Q_tot values
          """
-        logging.info(f"agent_q_inps: {agent_q_inps.shape}, type {type(agent_q_inps)}")
         agent_q_inps = to_torch(agent_q_inps).to(**self.tpdv)
         states = to_torch(states).to(**self.tpdv)
 
