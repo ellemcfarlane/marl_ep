@@ -276,7 +276,6 @@ def main(args):
             logging.debug(f"episode {episodes} complete, total_num_steps {total_num_steps}")
             episodes += 1
     else:
-        # add "skip_warmup": True to config
         runner.play()
     env.close()
     if all_args.use_eval and (eval_env is not env):

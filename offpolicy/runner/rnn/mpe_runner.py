@@ -80,7 +80,7 @@ class MPERunner(RecRunner):
             last_acts_batch = acts_batch
 
             env_acts = np.split(acts_batch, self.num_envs)
-            # env step and store the relevant episode informatio
+            # env step and store the relevant episode information
             next_obs, rewards, dones, infos = env.step(env_acts)
             env.render()
             # sleep to slow down rendering
@@ -363,7 +363,7 @@ class MPERunner(RecRunner):
             last_acts_batch = acts_batch
 
             env_acts = np.split(acts_batch, self.num_envs)
-            # env step and store the relevant episode informatio
+            # env step and store the relevant episode information
             next_obs, rewards, dones, infos = env.step(env_acts)
             if render:
                 env.render()
@@ -545,36 +545,3 @@ class MPERunner(RecRunner):
         self.env_infos = {}
 
         self.env_infos['average_episode_rewards'] = []
-
-# def main(args):
-    # parser = get_config()
-    # all_args = parse_args(args, parser)
-    # config = {"args": all_args,
-    #           "policy_info": policy_info,
-    #           "policy_mapping_fn": policy_mapping_fn,
-    #           "env": env,
-    #           "eval_env": eval_env,
-    #           "num_agents": num_agents,
-    #           "device": device,
-    #           "use_same_share_obs": all_args.use_same_share_obs,
-    #           "run_dir": run_dir
-    #           }
-
-    # total_num_steps = 0
-    # runner = MPERunner(config=config)
-    # while total_num_steps < all_args.num_env_steps:
-    #     total_num_steps = runner.run()
-
-    # env.close()
-    # if all_args.use_eval and (eval_env is not env):
-    #     eval_env.close()
-
-    # if all_args.use_wandb:
-    #     run.finish()
-    # else:
-    #     runner.writter.export_scalars_to_json(
-    #         str(runner.log_dir + '/summary.json'))
-    #     runner.writter.close()
-
-# if __name__ == "__main__":
-#     main(sys.argv[1:])
