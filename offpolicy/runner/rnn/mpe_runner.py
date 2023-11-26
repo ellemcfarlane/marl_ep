@@ -16,7 +16,7 @@ class MPERunner(RecRunner):
         self.collecter = self.shared_collect_rollout if self.share_policy else self.separated_collect_rollout
         # fill replay buffer with random actions
         if not self.skip_warmup:
-            num_warmup_episodes = max((self.batch_size, self.args.num_random_episodes))
+            num_warmup_episodes = min((self.batch_size, self.args.num_random_episodes))
             logging.debug("mperunner.__init__.warmup")
             logging.info(f"####### COLLECTING {num_warmup_episodes} RANDOM EPISODES AS WARMUP #######")
             self.collect_random_episodes(num_warmup_episodes)
@@ -330,7 +330,7 @@ class MPERunner(RecRunner):
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
             plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
             agent_rollouts_obs_comp = plan[p_id]
-            logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
+            logging.debug(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
             # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
             # get types of each too
         while t < self.episode_length:
