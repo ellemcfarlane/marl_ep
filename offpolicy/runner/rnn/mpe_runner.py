@@ -175,11 +175,9 @@ class MPERunner(RecRunner):
         # make modified_obs with same shape as obs but with priors added
         num_envs, num_agents, obs_dim = obs.shape
         modified_obs = np.zeros((num_envs, num_agents, obs_dim + 2 * num_agents))
-        print(modified_obs.shape)
         # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
         current_agent_poses = [MPERunner.agent_pos_from_joint_obs(i, obs) for i in range(num_agents)]
         for agent_id, agent_pos in enumerate(current_agent_poses):
-            print(f"agent_id: {agent_id}, agent_pos: {agent_pos}, shape {agent_pos.shape}")
             assert agent_poses_in_plan.shape == (num_agents, 2), f"agent_poses_in_plan.shape: {agent_poses_in_plan.shape}; should be {(num_agents, 2)}"
             priors = MPERunner.get_epistemic_priors(agent_pos, agent_poses_in_plan)
             exp_priors_shape = (num_agents, 2)
@@ -320,19 +318,7 @@ class MPERunner(RecRunner):
         policy = self.policies[p_id]
 
         env = self.env if training_episode or warmup else self.eval_env
-        # init_agent_poses = np.array([env.envs[0].world.agents[i].state.p_pos for i in range(self.num_agents)])
-        # init_landmark_poses = np.array([env.envs[0].world.landmarks[i].state.p_pos for i in range(self.num_agents)])
-        # print(f"init_agent_poses: {init_agent_poses}, {self.epistemic_planner}")
-        # print(f"init_landmark_poses: {init_landmark_poses}, {self.epistemic_planner}")
-        # TODO (elle): what are priors at beginning?
         obs = env.reset()
-        # if self.epistemic_planner is not None:
-            # # TODO: also call the planner to replace buffer with new plan from init cond!
-            # epi_env = self.epistemic_planner.env if training_episode or warmup else self.epistemic_planner.eval_env
-            # epi_env.reset()
-            # copy current env, set it as epistemic_planner's env and eval_env
-            # call planner to collect rollout of ONE episode but with same steps as current & store in buffer
-            # extract plan from buffer and set as epistemic plan or whatever - make sure doesn't affect loss fxn stuff
         logging.debug(f'obs.shape at env.reset(): {obs.shape}')
         rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
         last_acts_batch = np.zeros((self.num_envs * self.num_agents, policy.output_dim), dtype=np.float32)
@@ -379,21 +365,10 @@ class MPERunner(RecRunner):
             if not np.all(init_epi_agent_poses == init_agent_poses):
                 assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
                 assert np.all(init_epi_landmark_poses == init_landmark_poses), f"init_epi_landmark_poses: {init_epi_landmark_poses} don't match init_landmark_poses: {init_landmark_poses}"
-            else:
-                logging.info("nice, init conditions match!")
-            self.epistemic_planner.env = epi_env
-            self.epistemic_planner.eval_env = epi_env
-            n_plans = 1
-            # store_in_buffer = True
-            # use_random_actions = False
-            # _ = self.epistemic_planner.shared_collect_rollout(explore=store_in_buffer, training_episode=training_episode, warmup=use_random_actions)
-            # agent rollouts is tuple of (obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
-            # where each component is a dict mapping p_id: component
-            # TODO: make sure buffer is reset or something somehow?
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
-            # before it has dims
             plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
             agent_rollouts_obs_comp = plan[p_id]
+            logging.debug(f"collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
             # agent_rollouts = self.epistemic_planner.buffer.sample_ordered(n_plans)
             # agent_rollouts_obs_comp = agent_rollouts[0][p_id] # (3, 26, 1, 18) aka (n_agents, ep_len + 1, n_envs, obs_dim)
             # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
@@ -418,13 +393,6 @@ class MPERunner(RecRunner):
                 _, rnn_states_batch, _ = policy.get_actions(obs_batch,
                                                             last_acts_batch,
                                                             rnn_states_batch)
-            elif self.epistemic_planner is None: # self is the epistemic planner
-                # get actions with exploration noise (eps-greedy/Gaussian)
-                # TODO (elle): turn off epsilon greedy for epistemic planner collection
-                acts_batch, rnn_states_batch, _ = policy.get_actions(obs_batch,
-                                                                    last_acts_batch,
-                                                                    rnn_states_batch,
-                                                                    explore=False)
             else:
                 # get actions with exploration noise (eps-greedy/Gaussian)
                 # TODO (elle): turn off epsilon greedy for epistemic planner collection

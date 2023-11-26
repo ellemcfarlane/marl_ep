@@ -261,12 +261,15 @@ def main(args):
 
     total_num_steps = 0
     runner = Runner(config=config)
-    print("running?") 
+    logging.info("running?")
+    episodes = 0
     if not all_args.play:
         while total_num_steps < all_args.num_env_steps:
             logging.debug("calling runner.run()")
             total_num_steps = runner.run()
             logging.debug(".run() done")
+            logging.info(f"episode {episodes} complete, total_num_steps {total_num_steps}")
+            episodes += 1
     else:
         runner.play()
     env.close()
