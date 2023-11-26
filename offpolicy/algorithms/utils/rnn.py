@@ -1,5 +1,11 @@
 import torch.nn as nn
 from .mlp import MLPBase
+from offpolicy.utils.util import setup_logging
+import logging
+import inspect
+import torch
+
+setup_logging()
 
 class RNNLayer(nn.Module):
     def __init__(self, inputs_dim, outputs_dim, recurrent_N, use_orthogonal):
@@ -32,6 +38,9 @@ class RNNBase(MLPBase):
 
     def forward(self, x, hxs):
         if self._use_feature_normalization:
+            # log caller of this function
+            stack = inspect.currentframe()
+            stack = inspect.getouterframes(stack, 2)
             x = self.feature_norm(x)
 
         if self._use_conv1d:

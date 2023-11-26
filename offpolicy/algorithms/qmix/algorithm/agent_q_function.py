@@ -4,6 +4,10 @@ from offpolicy.utils.util import to_torch
 from offpolicy.algorithms.utils.mlp import MLPBase
 from offpolicy.algorithms.utils.rnn import RNNBase
 from offpolicy.algorithms.utils.act import ACTLayer
+from offpolicy.utils.util import setup_logging
+import logging
+
+setup_logging()
 
 class AgentQFunction(nn.Module):
     """
@@ -63,5 +67,4 @@ class AgentQFunction(nn.Module):
 
         # pass outputs through linear layer
         q_outs = self.q(rnn_outs, no_sequence)
-
         return q_outs, h_final

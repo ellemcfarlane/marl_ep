@@ -3,6 +3,11 @@ from gym import spaces
 from gym.envs.registration import EnvSpec
 import numpy as np
 from .multi_discrete import MultiDiscrete
+import logging
+from offpolicy.utils.util import setup_logging
+import logging
+
+setup_logging()
 
 # update bounds to center around agent
 cam_range = 2
@@ -17,7 +22,7 @@ class MultiAgentEnv(gym.Env):
     def __init__(self, world, reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
                  done_callback=None, post_step_callback=None,
-                 shared_viewer=True, discrete_action=True):
+                 shared_viewer=True, discrete_action=True, epistemic=False):
 
         self.world = world
         self.world_length = self.world.world_length
@@ -90,6 +95,9 @@ class MultiAgentEnv(gym.Env):
                 self.action_space.append(total_action_space[0])
             # observation space
             obs_dim = len(observation_callback(agent, self.world))
+            if epistemic:
+                priors_dims_per_agent = self.num_agents * 2
+                obs_dim += priors_dims_per_agent
             share_obs_dim += obs_dim
             self.observation_space.append(spaces.Box(
                 low=-np.inf, high=+np.inf, shape=(obs_dim,), dtype=np.float32))  # [-inf,inf]
@@ -254,7 +262,7 @@ class MultiAgentEnv(gym.Env):
         self.render_geoms = None
         self.render_geoms_xform = None
 
-    def render(self, mode='human', close=True):
+    def render(self, mode='human', close=False):
         if close:
             # close any existic renderers
             for i, viewer in enumerate(self.viewers):
@@ -262,7 +270,6 @@ class MultiAgentEnv(gym.Env):
                     viewer.close()
                 self.viewers[i] = None
             return []
-
         if mode == 'human':
             alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             message = ''

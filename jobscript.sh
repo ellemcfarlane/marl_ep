@@ -3,7 +3,7 @@
 ### –- specify queue --
 #BSUB -q gpuv100
 ### -- set the job Name --
-#BSUB -J mpe_agents
+#BSUB -J marl_ep
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 4
 ### -- specify that the cores must be on the same host -- 
@@ -35,4 +35,4 @@ module load cuda/10.1
 module load cudnn/v7.6.5.32-prod-cuda-10.1
 
 echo "training agents..."
-make train
+make train-ep-hpc

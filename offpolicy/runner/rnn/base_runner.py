@@ -5,7 +5,10 @@ import torch
 from tensorboardX import SummaryWriter
 
 from offpolicy.utils.rec_buffer import RecReplayBuffer, PrioritizedRecReplayBuffer
-from offpolicy.utils.util import DecayThenFlatSchedule
+from offpolicy.utils.util import DecayThenFlatSchedule, setup_logging
+import logging
+
+setup_logging()
 
 class RecRunner(object):
     """Base class for training recurrent policies."""
@@ -17,8 +20,9 @@ class RecRunner(object):
         """
         self.args = config["args"]
         self.device = config["device"]
-        self.q_learning = ["qmix","vdn"]
+        self.q_learning = ["qmix","qmix_ep","vdn"]
 
+        self.skip_warmup = config.get("skip_warmup", False)
         self.share_policy = self.args.share_policy
         self.algorithm_name = self.args.algorithm_name
         self.env_name = self.args.env_name
@@ -92,7 +96,8 @@ class RecRunner(object):
         # no parallel envs
         self.num_envs = 1
 
-        # dir
+        # sets an epistemic planner if configured
+        self.epistemic_planner = config.get("epistemic_planner", None)
         self.model_dir = self.args.model_dir
         if self.use_wandb:
             self.save_dir = str(wandb.run.dir)
@@ -123,6 +128,9 @@ class RecRunner(object):
         elif self.algorithm_name == "qmix":
             from offpolicy.algorithms.qmix.algorithm.QMixPolicy import QMixPolicy as Policy
             from offpolicy.algorithms.qmix.qmix import QMix as TrainAlgo
+        elif self.algorithm_name == "qmix_ep":
+            from offpolicy.algorithms.qmix.algorithm.QMixPolicy import QMixPolicy as Policy
+            from offpolicy.algorithms.qmix.qmix import QMix as TrainAlgo
         elif self.algorithm_name == "vdn":
             from offpolicy.algorithms.vdn.algorithm.VDNPolicy import VDNPolicy as Policy
             from offpolicy.algorithms.vdn.vdn import VDN as TrainAlgo
@@ -136,12 +144,12 @@ class RecRunner(object):
 
         self.policies = {p_id: Policy(config, self.policy_info[p_id]) for p_id in self.policy_ids}
 
-        if self.model_dir is not None:
-            self.restorer()
-
         # initialize trainer class for updating policies
         self.trainer = TrainAlgo(self.args, self.num_agents, self.policies, self.policy_mapping_fn,
                                  device=self.device, episode_length=self.episode_length)
+
+        if self.model_dir is not None:
+            self.restorer()
 
         # map policy id to agent ids controlled by that policy
         self.policy_agents = {policy_id: sorted(
@@ -180,14 +188,21 @@ class RecRunner(object):
     def run(self):
         """Collect a training episode and perform appropriate training, saving, logging, and evaluation steps."""
         # collect data
+        logging.debug("base_runner.run")
+        logging.debug("base_runner.trainer.prep_rollout")
         self.trainer.prep_rollout()
+        logging.debug("base_runner.collecter(explore=True, training_episode=True, warmup=False")
+        logging.debug(f"self.collecter: {self.collecter}")
         env_info = self.collecter(explore=True, training_episode=True, warmup=False)
+        logging.debug(f"after collecting {self.num_episodes_collected} episodes")
         for k, v in env_info.items():
             self.env_infos[k].append(v)
 
         # train
         if ((self.num_episodes_collected - self.last_train_episode) / self.train_interval_episode) >= 1 or self.last_train_episode == 0:
+            logging.debug("base_runner.train (should be batch_train_q)")
             self.train()
+            logging.debug("base_runner.train done")
             self.total_train_steps += 1
             self.last_train_episode = self.num_episodes_collected
 
@@ -203,28 +218,39 @@ class RecRunner(object):
 
         # eval
         if self.use_eval and ((self.total_env_steps - self.last_eval_T) / self.eval_interval) >= 1:
+            logging.debug("base_runner.eval")
             self.eval()
+            logging.debug("base_runn.eval done")
             self.last_eval_T = self.total_env_steps
 
         return self.total_env_steps
     
-    def warmup(self, num_warmup_episodes):
+    def collect_random_episodes(self, num_episodes):
+        self.collect_episodes(num_episodes, warmup=True)
+    
+    def collect_expert_episodes(self, num_episodes):
+        self.collect_episodes(num_episodes, warmup=False)
+
+    def collect_episodes(self, num_episodes, warmup):
         """
         Fill replay buffer with enough episodes to begin training.
 
-        :param: num_warmup_episodes (int): number of warmup episodes to collect.
+        :param: num_episodes (int): number of warmup episodes to collect.
         """
         self.trainer.prep_rollout()
         warmup_rewards = []
         print("warm up...")
-        for _ in range((num_warmup_episodes // self.num_envs) + 1):
-            env_info = self.collecter(explore=True, training_episode=False, warmup=True)
+        n_collections = min((num_episodes // self.num_envs) + 1, (num_episodes // self.num_envs))
+        logging.info(f"collecting {n_collections} episodes")
+        for _ in range(n_collections):
+            env_info = self.collecter(explore=True, training_episode=False, warmup=warmup)
             warmup_rewards.append(env_info['average_episode_rewards'])
         warmup_reward = np.mean(warmup_rewards)
         print("warmup average episode rewards: {}".format(warmup_reward))
 
     def batch_train(self):
         """Do a gradient update for all policies."""
+        logging.debug("base_runner.batch_train -> self.trainer.prep_training")
         self.trainer.prep_training()
 
         # gradient updates
@@ -258,18 +284,23 @@ class RecRunner(object):
 
     def batch_train_q(self):
         """Do a q-learning update to policy (used for QMix and VDN)."""
+        logging.debug("base_runner.batch_train_q -> self.trainer.prep_training")
+        logging.debug(f"trainer (shold be QMIX): {self.trainer}")
         self.trainer.prep_training()
         # gradient updates
         self.train_infos = []
 
         for p_id in self.policy_ids:
+            logging.debug(f"use_per {self.use_per}")
             if self.use_per:
                 beta = self.beta_anneal.eval(self.total_train_steps)
                 sample = self.buffer.sample(self.batch_size, beta, p_id)
             else:
                 sample = self.buffer.sample(self.batch_size)
-
+            logging.debug(f"batch sample size {len(sample)}")
+            logging.debug(f"p_id {p_id} base_runner.batch_train_q -> self.trainer.train_policy_on_batch")
             train_info, new_priorities, idxes = self.trainer.train_policy_on_batch(sample)
+            logging.debug("training on batch done")
 
             if self.use_per:
                 self.buffer.update_priorities(idxes, new_priorities, p_id)

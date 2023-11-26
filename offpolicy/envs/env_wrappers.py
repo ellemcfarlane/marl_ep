@@ -107,8 +107,9 @@ class ShareVecEnv(ABC):
         return self.step_wait()
 
     def render(self, mode='human'):
-        from utils.util import tile_images
+        from ..utils.util import tile_images
         imgs = self.get_images()
+        # imgs shape! (1, 1, 700, 700, 3)
         bigimg = tile_images(imgs)
         if mode == 'human':
             self.get_viewer().imshow(bigimg)
@@ -122,7 +123,10 @@ class ShareVecEnv(ABC):
         """
         Return RGB images from each environment
         """
-        raise NotImplementedError
+        # TODO (elle) BUG: why is indexing necessary here?
+        # shape example (1, 700, 700, 3)
+        imgs = np.array([env.render(mode='rgb_array')[0] for env in self.envs], dtype=np.uint8)
+        return imgs
 
     @property
     def unwrapped(self):

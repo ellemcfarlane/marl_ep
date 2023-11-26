@@ -8,6 +8,8 @@ class EntityState(object):
         self.p_pos = None
         # physical velocity
         self.p_vel = None
+    def __str__(self) -> str:
+        return f"p_pos: {self.p_pos}, p_vel: {self.p_vel}"
 
 # state of agents (including communication and internal/mental state)
 class AgentState(EntityState):
@@ -70,6 +72,9 @@ class Entity(object):
         self.initial_mass = 1.0
         # commu channel
         self.channel = None
+    
+    def __str__(self) -> str:
+        return f"name: {self.name}, color: {self.color}, state: {self.state}"
 
     @property
     def mass(self):

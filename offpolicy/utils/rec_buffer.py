@@ -1,7 +1,10 @@
 import numpy as np
 from offpolicy.utils.util import get_dim_from_space
 from offpolicy.utils.segment_tree import SumSegmentTree, MinSegmentTree
+from offpolicy.utils.util import setup_logging
+import logging
 
+setup_logging()
 
 def _cast(x):
     return x.transpose(2, 0, 1, 3)
@@ -74,6 +77,28 @@ class RecReplayBuffer(object):
         :return: avail_acts: (dict) maps policy_id to available actions corresponding to that policy
         """
         inds = np.random.choice(self.__len__(), batch_size)
+        obs, share_obs, acts, rewards, dones, dones_env, avail_acts = {}, {}, {}, {}, {}, {}, {}
+        for p_id in self.policy_info.keys():
+            obs[p_id], share_obs[p_id], acts[p_id], rewards[p_id], dones[p_id], dones_env[p_id], avail_acts[p_id] = \
+            self.policy_buffers[p_id].sample_inds(inds)
+
+        return obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
+    
+    def sample_ordered(self, batch_size):
+        """
+        Sample a set of episodes from buffer, uniformly at random.
+        :param batch_size: (int) number of episodes to sample from buffer.
+
+        :return: obs: (dict) maps policy id to sampled observations corresponding to that policy
+        :return: share_obs: (dict) maps policy id to sampled observations corresponding to that policy
+        :return: acts: (dict) maps policy id to sampled actions corresponding to that policy
+        :return: rewards: (dict) maps policy id to sampled rewards corresponding to that policy
+        :return: dones: (dict) maps policy id to sampled terminal status of agents corresponding to that policy
+        :return: dones_env: (dict) maps policy id to sampled environment terminal status corresponding to that policy
+        :return: valid_transition: (dict) maps policy_id to whether each sampled transition is valid or not (invalid if corresponding agent is dead)
+        :return: avail_acts: (dict) maps policy_id to available actions corresponding to that policy
+        """
+        inds = np.arange(batch_size)
         obs, share_obs, acts, rewards, dones, dones_env, avail_acts = {}, {}, {}, {}, {}, {}, {}
         for p_id in self.policy_info.keys():
             obs[p_id], share_obs[p_id], acts[p_id], rewards[p_id], dones[p_id], dones_env[p_id], avail_acts[p_id] = \
@@ -205,6 +230,7 @@ class RecPolicyBuffer(object):
         """
 
         obs = _cast(self.obs[:, sample_inds])
+        logging.debug(f"obs shape in SAMPLE_INDS: {obs.shape}")
         acts = _cast(self.acts[:, sample_inds])
         if self.use_reward_normalization:
             # mean std
@@ -302,6 +328,28 @@ class PrioritizedRecReplayBuffer(RecReplayBuffer):
                 p_id] = p_buffer.sample_inds(batch_inds)
 
         return obs, share_obs, acts, rewards, dones, dones_env, avail_acts, weights, batch_inds
+
+    def sample_ordered(self, batch_size):
+        """
+        Sample a set of episodes from buffer, uniformly at random.
+        :param batch_size: (int) number of episodes to sample from buffer.
+
+        :return: obs: (dict) maps policy id to sampled observations corresponding to that policy
+        :return: share_obs: (dict) maps policy id to sampled observations corresponding to that policy
+        :return: acts: (dict) maps policy id to sampled actions corresponding to that policy
+        :return: rewards: (dict) maps policy id to sampled rewards corresponding to that policy
+        :return: dones: (dict) maps policy id to sampled terminal status of agents corresponding to that policy
+        :return: dones_env: (dict) maps policy id to sampled environment terminal status corresponding to that policy
+        :return: valid_transition: (dict) maps policy_id to whether each sampled transition is valid or not (invalid if corresponding agent is dead)
+        :return: avail_acts: (dict) maps policy_id to available actions corresponding to that policy
+        """
+        inds = np.arange(batch_size)
+        obs, share_obs, acts, rewards, dones, dones_env, avail_acts = {}, {}, {}, {}, {}, {}, {}
+        for p_id in self.policy_info.keys():
+            obs[p_id], share_obs[p_id], acts[p_id], rewards[p_id], dones[p_id], dones_env[p_id], avail_acts[p_id] = \
+            self.policy_buffers[p_id].sample_inds(inds)
+
+        return obs, share_obs, acts, rewards, dones, dones_env, avail_acts, None, None
 
     def update_priorities(self, idxes, priorities, p_id=None):
         """

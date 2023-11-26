@@ -3,8 +3,10 @@ import torch
 from offpolicy.algorithms.qmix.algorithm.agent_q_function import AgentQFunction
 from offpolicy.algorithms.base.recurrent_policy import RecurrentPolicy
 from torch.distributions import Categorical, OneHotCategorical
-from offpolicy.utils.util import get_dim_from_space, is_discrete, is_multidiscrete, make_onehot, DecayThenFlatSchedule, avail_choose, to_torch, to_numpy
+from offpolicy.utils.util import get_dim_from_space, is_discrete, is_multidiscrete, make_onehot, DecayThenFlatSchedule, avail_choose, to_torch, to_numpy, setup_logging
+import logging
 
+setup_logging()
 
 class QMixPolicy(RecurrentPolicy):
     def __init__(self, config, policy_config, train=True):
@@ -26,6 +28,11 @@ class QMixPolicy(RecurrentPolicy):
         self.discrete = is_discrete(self.act_space)
         self.multidiscrete = is_multidiscrete(self.act_space)
 
+        if self.args.epistemic:
+            assert self.obs_dim == 24, f"obs dims should be 24 when args.epistemic=True, but is {self.obs_dim}"
+        else:
+            assert self.obs_dim == 18, f"obs dims should be 18 when args.epistemic=False, but is {self.obs_dim}"
+        logging.info(f"OBS DIMS?! {self.obs_dim}, epistemic: {self.args.epistemic}")
         if self.args.prev_act_inp:
             # this is only local information so the agent can act decentralized
             self.q_network_input_dim = self.obs_dim + self.act_dim
@@ -56,9 +63,7 @@ class QMixPolicy(RecurrentPolicy):
             input_batch = torch.cat((obs_batch, prev_action_batch), dim=-1)
         else:
             input_batch = obs_batch
-
         q_batch, new_rnn_states = self.q_network(input_batch, rnn_states)
-
         if action_batch is not None:
             action_batch = to_torch(action_batch).to(self.device)
             q_values = self.q_values_from_actions(q_batch, action_batch)
