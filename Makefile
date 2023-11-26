@@ -1,4 +1,4 @@
-USE_WANDB=true
+USE_WANDB=false
 
 test:
 	pytest tests/epistemic/test_marl_ep.py
@@ -31,7 +31,7 @@ train-hpc:
 train-ep-hpc:
 	cd offpolicy/scripts/; \
 	chmod +x ./train_mpe_qmix_ep.sh; \
-	exp="qmix-ep-hpc" ./train_mpe_qmix_ep.sh
+	exp="qmix-ep-hpc" use_wandb=true ./train_mpe_qmix_ep.sh
 
 queue:
 	bsub < jobscript.sh
