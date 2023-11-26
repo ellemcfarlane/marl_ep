@@ -27,9 +27,16 @@ train-hpc:
 	chmod +x ./train_mpe_qmix.sh; \
 	exp="qmix-hpc" ./train_mpe_qmix.sh
 
+train-ep-hpc:
+	cd offpolicy/scripts/; \
+	chmod +x ./train_mpe_qmix_ep.sh; \
+	exp="qmix-hpc" ./train_mpe_qmix_ep.sh
+
 queue:
 	bsub < jobscript.sh
 
+stat:
+	# 
 # /work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_143441-3g43g1v8/files/policy_0/q_network.pt
 # /work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_143441-3g43g1v8/files/mixer.pt
 
