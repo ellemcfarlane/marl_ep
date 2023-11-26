@@ -7,7 +7,7 @@ def get_config():
     # if set, just prints all args and exits
     parser.add_argument('--dry_run', action='store_true', default=False)
     parser.add_argument('--play', action='store_true', default=False)
-    parser.add_argument('--fov', type=int, default=-1) # full vision
+    # parser.add_argument('--fov', type=int, default=-1) # full vision
     # add epistemic boolean
     parser.add_argument('--epistemic', action='store_true', default=False)
     # prepare parameters
