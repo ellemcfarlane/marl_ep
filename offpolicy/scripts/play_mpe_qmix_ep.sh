@@ -3,7 +3,7 @@ env="MPE"
 scenario="simple_spread" # aka cooperative navigation
 num_landmarks=3
 num_agents=3
-algo="qmix"
+algo="qmix_ep"
 exp="${exp:-debug}" # default to experiment name "debug"
 seed_max=1
 # WARNING: make sure device num is correct, e.g. check avail with nvidid-smi
