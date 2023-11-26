@@ -144,17 +144,26 @@ class MPERunner(RecRunner):
         return np.array(epistemic_priors)
     
     @staticmethod
-    def agent_pos_from_obs(agent_id, obs):
+    def agent_pos_from_joint_obs(agent_id, obss):
         """
-        Get the agent's position from the observation.
+        Get the agent's position from the joint-observation.
         :param agent_id: (int) agent id to get the position of.
-        :param obs: (np.ndarray) observation of shape (n_envs, n_agents, 18) to get the agent's position from - so dim of each agent's individual obs is 18
+        :param obss: (np.ndarray) observation of shape (n_envs, n_agents, 18) to get the agent's position from - so dim of each agent's individual obs is 18
         :return agent_pos: (np.ndarray) agent's position.
         """
         env_idx = 0
-        agent_pos = obs[env_idx, agent_id, 2:4]
-        return agent_pos
+        local_obs = obss[env_idx, agent_id]
+        return MPERunner.agent_pos_from_obs(local_obs)
 
+    def agent_pos_from_obs(local_obs):
+        """
+        Get the agent's position from the observation.
+        :param agent_id: (int) agent id to get the position of.
+        :param local_obs: (np.ndarray) one agent's observation of shape (18,1) to get the agent's position from - so dim of each agent's individual obs is 18
+        :return agent_pos: (np.ndarray) agent's position.
+        """
+        agent_pos = local_obs[2:4]
+        return agent_pos
         
     @staticmethod
     def add_priors_to_obs(obs, agent_poses_in_plan):
@@ -170,7 +179,7 @@ class MPERunner(RecRunner):
         modified_obs = np.zeros((num_envs, num_agents, obs_dim + 2 * num_agents))
         print(modified_obs.shape)
         # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
-        current_agent_poses = [MPERunner.agent_pos_from_obs(i, obs) for i in range(num_agents)]
+        current_agent_poses = [MPERunner.agent_pos_from_joint_obs(i, obs) for i in range(num_agents)]
         for agent_id, agent_pos in enumerate(current_agent_poses):
             print(f"agent_id: {agent_id}, agent_pos: {agent_pos}, shape {agent_pos.shape}")
             assert agent_poses_in_plan.shape == (num_agents, 2), f"agent_poses_in_plan.shape: {agent_poses_in_plan.shape}; should be {(num_agents, 2)}"
@@ -190,7 +199,8 @@ class MPERunner(RecRunner):
             modified_obs[env_idx, agent_id] = new_entry
         return modified_obs
 
-    def agent_poses_in_rollout_at_time(self, rollout_obss, t):
+    @staticmethod
+    def agent_poses_in_rollout_at_time(rollout_obss, t):
         """
         Get the agent poses in the rollout at the given time step.
         :param rollout_obss: (ndarray) of (n_agents, ep_len + 1, n_envs, obs_dim)
@@ -199,12 +209,13 @@ class MPERunner(RecRunner):
         """
         agent_poses = []
         env_idx = 0 # only one env for now
-        for agent_id in range(self.num_agents):
+        num_agents = rollout_obss.shape[0]
+        for agent_id in range(num_agents):
             agent_obs_at_t = rollout_obss[agent_id][t][env_idx]
-            assert agent_obs_at_t.shape == (18,), f"agent_obs_at_t.shape: {agent_obs_at_t.shape}; should be (18,)"
+            # assert agent_obs_at_t.shape == (18,), f"agent_obs_at_t.shape: {agent_obs_at_t.shape}; should be (18,)"
             # obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
             # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
-            agent_pos = agent_obs_at_t[2:4]
+            agent_pos = MPERunner.agent_pos_from_obs(agent_obs_at_t)
             agent_poses.append(agent_pos)
         return np.array(agent_poses)
 
@@ -284,7 +295,7 @@ class MPERunner(RecRunner):
                 logging.debug(f"BEFORE ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
                 agent_poses_in_plan_at_time = self.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
                 # agent_poses_in_plan_at_time = np.array([[0,0], [0,0], [0,0]])
-                obs = self.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
+                obs = MPERunner.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
                 logging.debug(f"AFTER ADDING PRIORS obs: {obs.shape}, n_envs {self.num_envs}, n_agents {self.num_agents}")
             share_obs = obs.reshape(self.num_envs, -1)
             if self.epistemic_planner is not None:
@@ -348,7 +359,7 @@ class MPERunner(RecRunner):
 
         if self.epistemic_planner is not None:
             agent_poses_in_plan_at_time = self.agent_poses_in_rollout_at_time(agent_rollouts_obs_comp, t)
-            obs = self.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
+            obs = MPERunner.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
         episode_obs[p_id][t] = obs
         episode_share_obs[p_id][t] = obs.reshape(self.num_envs, -1)
 
