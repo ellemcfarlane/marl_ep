@@ -282,18 +282,6 @@ class MPERunner(RecRunner):
         episode_obs[p_id][t] = obs
         episode_share_obs[p_id][t] = obs.reshape(epistemic_planner.num_envs, -1)
 
-        # if explore:
-        #     epistemic_planner.num_episodes_collected += epistemic_planner.num_envs
-        #     # push all episodes collected in this rollout step to the buffer
-        #     epistemic_planner.buffer.insert(epistemic_planner.num_envs,
-        #                        episode_obs,
-        #                        episode_share_obs,
-        #                        episode_acts,
-        #                        episode_rewards,
-        #                        episode_dones,
-        #                        episode_dones_env,
-        #                        episode_avail_acts)
-
         average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], axis=0))
         env_info['average_episode_rewards'] = average_episode_rewards
         plan = episode_obs
@@ -368,7 +356,7 @@ class MPERunner(RecRunner):
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
             plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
             agent_rollouts_obs_comp = plan[p_id]
-            logging.debug(f"collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
+            logging.debug(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
             # agent_rollouts = self.epistemic_planner.buffer.sample_ordered(n_plans)
             # agent_rollouts_obs_comp = agent_rollouts[0][p_id] # (3, 26, 1, 18) aka (n_agents, ep_len + 1, n_envs, obs_dim)
             # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
