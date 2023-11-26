@@ -27,8 +27,8 @@ for seed in $(seq ${seed_max}); do
         --num_agents ${num_agents} \
         --num_landmarks ${num_landmarks} \
         --seed ${seed} \
-        --episode_length 5 \
-        --batch_size 1 \
+        --episode_length 25 \
+        --batch_size 32 \
         --tau 0.005 \
         --lr 7e-4 \
         --hard_update_interval_episode 100 \
