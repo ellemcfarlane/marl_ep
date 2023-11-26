@@ -18,7 +18,6 @@ class QMixPolicy(RecurrentPolicy):
         """
         self.args = config["args"]
         self.device = config['device']
-        self.n_other_agents = self.args.num_agents - 1
         self.obs_space = policy_config["obs_space"]
         self.obs_dim = get_dim_from_space(self.obs_space)
         self.act_space = policy_config["act_space"]
@@ -30,7 +29,7 @@ class QMixPolicy(RecurrentPolicy):
         self.multidiscrete = is_multidiscrete(self.act_space)
 
         if self.args.epistemic:
-            assert self.obs_dim == 22, f"obs dims should be 22 when args.epistemic=True, but is {self.obs_dim}"
+            assert self.obs_dim == 24, f"obs dims should be 24 when args.epistemic=True, but is {self.obs_dim}"
         else:
             assert self.obs_dim == 18, f"obs dims should be 18 when args.epistemic=False, but is {self.obs_dim}"
         logging.info(f"OBS DIMS?! {self.obs_dim}, epistemic: {self.args.epistemic}")

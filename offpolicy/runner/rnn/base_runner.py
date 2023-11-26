@@ -22,6 +22,7 @@ class RecRunner(object):
         self.device = config["device"]
         self.q_learning = ["qmix","qmix_ep","vdn"]
 
+        self.skip_warmup = config.get("skip_warmup", False)
         self.share_policy = self.args.share_policy
         self.algorithm_name = self.args.algorithm_name
         self.env_name = self.args.env_name

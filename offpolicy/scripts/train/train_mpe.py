@@ -225,6 +225,7 @@ def main(args):
             "use_same_share_obs": True,
             "run_dir": epi_run_dir,
             "use_epi_priors": False,
+            "skip_warmup": True,
         }
         epistemic_planner = Runner(config=ep_planner_config)
         # epistemic_planner = "dummy planner"
