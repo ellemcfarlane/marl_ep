@@ -10,6 +10,7 @@ seed_max=1
 CUDA_VISIBLE_DEVICES=0
 PYTHON_BIN=../../env/bin/python3
 PRETRAINED_QMIX=../models/epistemic_planner/
+MODEL_DIR=../models/qmix_ep/full_obs_146/
 echo "env is ${env}, scenario is ${scenario}, algo is ${algo}, exp is ${exp}, max seed is ${seed_max}"
 if [ "${use_wandb}" = "true" ]; then
     wandb_flag="--use_wandb"
@@ -35,6 +36,7 @@ for seed in $(seq ${seed_max}); do
         --use_reward_normalization \
         --user_name elles \
         --epi_dir ${PRETRAINED_QMIX} \
+        --model_dir ${MODEL_DIR} \
         --epistemic \
         ${wandb_flag}
     echo "training is done!"

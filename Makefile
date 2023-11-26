@@ -31,7 +31,7 @@ train-hpc:
 train-ep-hpc:
 	cd offpolicy/scripts/; \
 	chmod +x ./train_mpe_qmix_ep.sh; \
-	exp="qmix-ep-hpc" use_wandb=true ./train_mpe_qmix_ep.sh
+	exp="qmix-contd" use_wandb=true ./train_mpe_qmix_ep.sh
 
 queue:
 	bsub < jobscript.sh
