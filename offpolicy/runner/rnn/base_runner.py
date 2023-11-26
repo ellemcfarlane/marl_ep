@@ -239,7 +239,7 @@ class RecRunner(object):
         self.trainer.prep_rollout()
         warmup_rewards = []
         print("warm up...")
-        n_collections = 1 if (num_episodes // self.num_envs) <= 1 else (num_episodes // self.num_envs) + 1
+        n_collections = min((num_episodes // self.num_envs) + 1, (num_episodes // self.num_envs))
         logging.info(f"collecting {n_collections} episodes")
         for _ in range(n_collections):
             env_info = self.collecter(explore=True, training_episode=False, warmup=warmup)

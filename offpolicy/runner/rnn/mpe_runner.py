@@ -19,8 +19,8 @@ class MPERunner(RecRunner):
         # if no epistemic planner, then self is the epistemic planner
         if self.epistemic_planner is None:
             # only need to fill buffer with one episode for expert planner
-            logging.info(f"collecting {1} expert episodes for qmix")
-            self.collect_expert_episodes(1)
+            logging.info(f"collecting {num_warmup_episodes} expert episodes for qmix")
+            self.collect_expert_episodes(num_warmup_episodes)
         else:
             logging.info(f"collecting {num_warmup_episodes} random episodes as warmup")
             self.collect_random_episodes(num_warmup_episodes)
@@ -237,11 +237,16 @@ class MPERunner(RecRunner):
         policy = self.policies[p_id]
 
         env = self.env if training_episode or warmup else self.eval_env
+        init_agent_poses = np.array([env.envs[0].world.agents[i].state.p_pos for i in range(self.num_agents)])
+        init_landmark_poses = np.array([env.envs[0].world.landmarks[i].state.p_pos for i in range(self.num_agents)])
+        print(f"init_agent_poses: {init_agent_poses}, {self.epistemic_planner}")
+        print(f"init_landmark_poses: {init_landmark_poses}, {self.epistemic_planner}")
         # TODO (elle): what are priors at beginning?
         obs = env.reset()
         if self.epistemic_planner is not None:
             # TODO: also call the planner to replace buffer with new plan from init cond!
-            self.epistemic_planner.env.reset()
+            epi_env = self.epistemic_planner.env if training_episode or warmup else self.epistemic_planner.eval_env
+            epi_env.reset()
         logging.debug(f'obs.shape at env.reset(): {obs.shape}')
         rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
         last_acts_batch = np.zeros((self.num_envs * self.num_agents, policy.output_dim), dtype=np.float32)
@@ -270,10 +275,9 @@ class MPERunner(RecRunner):
             logging.debug(f"COLLECTING PRIORS")
             assert self.epistemic_planner.epistemic_planner is None
             # check agent and landmark positions of env are same as epi_env's
-            epi_env = self.epistemic_planner.env.envs[0]
-            init_epi_agent_poses = np.array([epi_env.world.agents[i].state.p_pos for i in range(self.num_agents)])
+            init_epi_agent_poses = np.array([epi_env.envs[0].world.agents[i].state.p_pos for i in range(self.num_agents)])
+            init_epi_landmark_poses = np.array([epi_env.envs[0].world.landmarks[i].state.p_pos for i in range(self.num_agents)])
             init_agent_poses = np.array([env.envs[0].world.agents[i].state.p_pos for i in range(self.num_agents)])
-            init_epi_landmark_poses = np.array([epi_env.world.landmarks[i].state.p_pos for i in range(self.num_agents)])
             init_landmark_poses = np.array([env.envs[0].world.landmarks[i].state.p_pos for i in range(self.num_agents)])
             if not np.all(init_epi_agent_poses == init_agent_poses):
                 assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
