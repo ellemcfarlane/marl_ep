@@ -1,3 +1,4 @@
+USE_WANDB=true
 
 test:
 	pytest tests/epistemic/test_marl_ep.py
@@ -10,7 +11,7 @@ train-mad:
 train-ep:
 	cd offpolicy/scripts/; \
 	chmod +x ./train_mpe_qmix_ep.sh; \
-	./train_mpe_qmix_ep.sh
+	use_wandb=${USE_WANDB} ./train_mpe_qmix_ep.sh
 
 play-ep:
 	cd offpolicy/scripts/; \
