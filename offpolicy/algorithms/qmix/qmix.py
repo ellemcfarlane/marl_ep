@@ -6,9 +6,14 @@ from offpolicy.algorithms.vdn.algorithm.vdn_mixer import VDNMixer
 from offpolicy.algorithms.base.trainer import Trainer
 from offpolicy.utils.popart import PopArt
 import numpy as np
+from offpolicy.runner.rnn.mpe_runner import MPERunner
+from offpolicy.utils.util import setup_logging
+import logging
+
+setup_logging()
 
 class QMix(Trainer):
-    def __init__(self, args, num_agents, policies, policy_mapping_fn, device=torch.device("cuda:0"), episode_length=None, vdn=False):
+    def __init__(self, args, num_agents, policies, policy_mapping_fn, device=torch.device("cuda:0"), episode_length=None, vdn=False, epistemic_planner=None):
         """
         Trainer class for recurrent QMix/VDN. See parent class for more information.
         :param episode_length: (int) maximum length of an episode.
@@ -44,7 +49,9 @@ class QMix(Trainer):
         if self.use_popart:
             self.value_normalizer = {policy_id: PopArt(1) for policy_id in self.policies.keys()}
 
+        # TODO (elle): make sure to set to false for marl-ep!
         self.use_same_share_obs = self.args.use_same_share_obs
+        self.epistemic_planner = epistemic_planner
 
         multidiscrete_list = None
         if any([isinstance(policy.act_dim, np.ndarray) for policy in self.policies.values()]):
@@ -83,10 +90,12 @@ class QMix(Trainer):
         avail_act_batch, \
         importance_weights, idxes = batch
 
+        # logging.debug(f"qmix.train_policy_on_batch called")
         if self.use_same_share_obs:
             cent_obs_batch = to_torch(cent_obs_batch[self.policy_ids[0]])
         else:
             choose_agent_id = 0
+            # TODO (elle): add epistemic priors here?
             cent_obs_batch = to_torch(cent_obs_batch[self.policy_ids[0]][choose_agent_id])
 
         dones_env_batch = to_torch(dones_env_batch[self.policy_ids[0]]).to(**self.tpdv)
@@ -102,6 +111,8 @@ class QMix(Trainer):
             target_policy = self.target_policies[p_id]
             # get data related to the policy id
             pol_obs_batch = to_torch(obs_batch[p_id])
+            # logging.debug(f"pol_obs_batch: {pol_obs_batch.shape}, type {type(pol_obs_batch)}, requires grad: {pol_obs_batch.requires_grad}")
+
             curr_act_batch = to_torch(act_batch[p_id]).to(**self.tpdv)
 
             # stack over policy's agents to process them at once
@@ -122,10 +133,11 @@ class QMix(Trainer):
 
             pol_prev_act_buffer_seq = torch.cat((torch.zeros(1, total_batch_size, sum_act_dim).to(**self.tpdv),
                                                  stacked_act_batch))
-
+            # logging.debug(f"stackedobsbatch.shape {stacked_obs_batch.shape}, type {type(stacked_obs_batch)}, requires grad: {stacked_obs_batch.requires_grad}")
             # sequence of q values for all possible actions
+            # logging.debug(f"policy in training {policy.q_network.training}, target policy in training {target_policy.q_network.training}")
             pol_all_q_seq, _ = policy.get_q_values(stacked_obs_batch, pol_prev_act_buffer_seq,
-                                                                            policy.init_hidden(-1, total_batch_size))
+                                                                            policy.init_hidden(-1, total_batch_size), debug=False)
             # get only the q values corresponding to actions taken in action_batch. Ignore the last time dimension.
             if policy.multidiscrete:
                 pol_all_q_curr_seq = [q_seq[:-1] for q_seq in pol_all_q_seq]
@@ -150,11 +162,15 @@ class QMix(Trainer):
         # combine agent q value sequences to feed into mixer networks
         agent_q_seq = torch.cat(agent_q_seq, dim=-1)
         agent_nq_seq = torch.cat(agent_nq_seq, dim=-1)
-
+        # logging.debug(f"agent_q_seq: {agent_q_seq.shape}, type {type(agent_q_seq)}, requires grad: {agent_q_seq.requires_grad}")
+        # logging.debug(f"agent_nq_seq: {agent_nq_seq.shape}, type {type(agent_nq_seq)}, requires grad: {agent_nq_seq.requires_grad}")
         # get curr step and next step Q_tot values using mixer
         Q_tot_seq = self.mixer(agent_q_seq, cent_obs_batch[:-1]).squeeze(-1)
         next_step_Q_tot_seq = self.target_mixer(agent_nq_seq, cent_obs_batch[1:]).squeeze(-1)
-
+        # logging.debug(f"mixer type {type(self.mixer)}")
+        # logging.debug(f"target mixer type {type(self.target_mixer)}")
+        # logging.debug(f"QTOTSHAPE {Q_tot_seq.shape}, type {type(Q_tot_seq)}")
+        # logging.debug(f"next step QTOTSHAPE {next_step_Q_tot_seq.shape}, type {type(next_step_Q_tot_seq)}")
         # agents share reward
         rewards = to_torch(rew_batch[self.policy_ids[0]][0]).to(**self.tpdv)
         # form bad transition mask
@@ -164,7 +180,8 @@ class QMix(Trainer):
         Q_tot_target_seq = rewards + (1 - dones_env_batch) * self.args.gamma * next_step_Q_tot_seq
         # Bellman error and mask out invalid transitions
         error = (Q_tot_seq - Q_tot_target_seq.detach()) * (1 - bad_transitions_mask)
-
+        # logging.debug(f"error requires grad: {error.requires_grad}, error grad_fn: {error.grad_fn}")
+        # logging.debug(f"q_tot_seq requires grad: {Q_tot_seq.requires_grad}, q_tot_seq grad_fn: {Q_tot_seq.grad_fn}")
         if self.use_per:
             # Form updated priorities for prioritized experience replay using the Bellman error
             importance_weights = to_torch(importance_weights).to(**self.tpdv)
@@ -188,6 +205,9 @@ class QMix(Trainer):
 
         # backward pass and gradient step
         self.optimizer.zero_grad()
+        # for param in self.parameters:
+            # logging.debug(f"param {param.requires_grad}")
+        # logging.debug(f"loss requires grad: {loss.requires_grad}, loss grad_fn: {loss.grad_fn}, loss {loss}")
         loss.backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(self.parameters, self.args.max_grad_norm)
         self.optimizer.step()
@@ -218,10 +238,20 @@ class QMix(Trainer):
     def prep_training(self):
         """See parent class."""
         for p_id in self.policy_ids:
+            # logging.debug(f"setting to train for qnet for p_id {p_id}, in training: {self.policies[p_id].q_network.training}")
             self.policies[p_id].q_network.train()
+            # logging.debug(f"policy {p_id} q network in training: {self.policies[p_id].q_network.training}")
+
+            # logging.debug(f"setting to train for TARGET qnet for p_id {p_id}, training {self.target_policies[p_id].q_network.training}")
             self.target_policies[p_id].q_network.train()
+            # logging.debug(f"policy {p_id} q network training: {self.target_policies[p_id].q_network.training}")
+        # logging.debug(f"setting to train for mixer, training: {self.mixer.training}")
         self.mixer.train()
+        # logging.debug(f"mixer training: {self.mixer.training}")
+        
+        # logging.debug(f"setting to train for TARGET mixer,training: {self.target_mixer.training}")
         self.target_mixer.train()
+        # logging.debug(f"target mixer training: {self.target_mixer.training}")
 
     def prep_rollout(self):
         """See parent class."""

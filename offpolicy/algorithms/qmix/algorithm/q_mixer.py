@@ -1,7 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from offpolicy.utils.util import init, to_torch
+from offpolicy.utils.util import init, to_torch, setup_logging
+import logging
+
+setup_logging()
 
 class QMixer(nn.Module):
     """

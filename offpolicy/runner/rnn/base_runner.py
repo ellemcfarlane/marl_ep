@@ -129,8 +129,8 @@ class RecRunner(object):
             from offpolicy.algorithms.qmix.algorithm.QMixPolicy import QMixPolicy as Policy
             from offpolicy.algorithms.qmix.qmix import QMix as TrainAlgo
         elif self.algorithm_name == "qmix_ep":
-            from offpolicy.algorithms.qmix_ep.algorithm.QMixPolicy import QMixPolicy as Policy
-            from offpolicy.algorithms.qmix_ep.qmix import QMix as TrainAlgo
+            from offpolicy.algorithms.qmix.algorithm.QMixPolicy import QMixPolicy as Policy
+            from offpolicy.algorithms.qmix.qmix import QMix as TrainAlgo
         elif self.algorithm_name == "vdn":
             from offpolicy.algorithms.vdn.algorithm.VDNPolicy import VDNPolicy as Policy
             from offpolicy.algorithms.vdn.vdn import VDN as TrainAlgo
