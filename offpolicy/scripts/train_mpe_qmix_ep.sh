@@ -9,7 +9,8 @@ seed_max=1
 # WARNING: make device num is correct, e.g. check avail with nvidid-smi
 CUDA_VISIBLE_DEVICES=0
 PYTHON_BIN=../../env/bin/python3
-PRETRAINED_QMIX=/work3/s222376/off-policy/offpolicy/models/epistemic_planner/
+PRETRAINED_QMIX=../models/epistemic_planner/
+MODEL_DIR=/work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix_ep/qmix-hpc/wandb/run-20231126_161538-1cehlgze/files/
 echo "env is ${env}, scenario is ${scenario}, algo is ${algo}, exp is ${exp}, max seed is ${seed_max}"
 if [ "${use_wandb}" = "true" ]; then
     wandb_flag="--use_wandb"
@@ -26,8 +27,8 @@ for seed in $(seq ${seed_max}); do
         --num_agents ${num_agents} \
         --num_landmarks ${num_landmarks} \
         --seed ${seed} \
-        --episode_length 25 \
-        --batch_size 32 \
+        --episode_length 5 \
+        --batch_size 1 \
         --tau 0.005 \
         --lr 7e-4 \
         --hard_update_interval_episode 100 \
@@ -35,6 +36,7 @@ for seed in $(seq ${seed_max}); do
         --use_reward_normalization \
         --user_name elles \
         --epi_dir ${PRETRAINED_QMIX} \
+        --model_dir ${MODEL_DIR} \
         --epistemic \
         ${wandb_flag}
     echo "training is done!"

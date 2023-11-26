@@ -136,7 +136,7 @@ class QMix(Trainer):
             # sequence of q values for all possible actions
             # logging.debug(f"policy in training {policy.q_network.training}, target policy in training {target_policy.q_network.training}")
             pol_all_q_seq, _ = policy.get_q_values(stacked_obs_batch, pol_prev_act_buffer_seq,
-                                                                            policy.init_hidden(-1, total_batch_size), debug=False)
+                                                                            policy.init_hidden(-1, total_batch_size))
             # get only the q values corresponding to actions taken in action_batch. Ignore the last time dimension.
             if policy.multidiscrete:
                 pol_all_q_curr_seq = [q_seq[:-1] for q_seq in pol_all_q_seq]
