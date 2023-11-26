@@ -218,7 +218,7 @@ def main(args):
             "args": epi_args,
             "policy_info": epi_policy_info,
             "policy_mapping_fn": policy_mapping_fn, # TODO (elle): will differ for epistemic planner (centralised, so 1 policy) vs qmix (decentralised, so num_agents policies)
-            "env": epi_env, # TODO (elle): double check copies correctly, else use make_train_env(all_args)
+            "env": epi_env, # TODO (elle): remove, planner get's env from main model
             "eval_env": epi_eval_env,
             "num_agents": num_agents,
             "device": device,

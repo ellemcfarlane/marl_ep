@@ -95,7 +95,6 @@ class QMix(Trainer):
             cent_obs_batch = to_torch(cent_obs_batch[self.policy_ids[0]])
         else:
             choose_agent_id = 0
-            # TODO (elle): add epistemic priors here?
             cent_obs_batch = to_torch(cent_obs_batch[self.policy_ids[0]][choose_agent_id])
 
         dones_env_batch = to_torch(dones_env_batch[self.policy_ids[0]]).to(**self.tpdv)
