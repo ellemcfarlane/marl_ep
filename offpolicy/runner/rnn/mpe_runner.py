@@ -247,7 +247,8 @@ class MPERunner(RecRunner):
             env_acts = np.split(acts_batch, epistemic_planner.num_envs)
             # env step and store the relevant episode information
             next_obs, rewards, dones, infos = env.step(env_acts)
-            env.render()
+            if render:
+                env.render()
             # sleep to slow down rendering
             time.sleep(0.1)
             epistemic_planner.total_env_steps += epistemic_planner.num_envs
