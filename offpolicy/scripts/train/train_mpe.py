@@ -198,7 +198,6 @@ def main(args):
         epi_args.buffer_size = 1 # only want one plan for given env
         # config for model that was not trained with priors but that will be used to get the priors, i.e. serve as epistemic planner
         epi_args.epistemic = False # this is pretrained model, so not don't want to use epistemic priors
-        logging.info(f"epistemic planner args: {epi_args}")
         epi_env = make_train_env(epi_args)
         epi_eval_env = make_eval_env(epi_args)
         epi_policy_info = get_policy_info_from_env(epi_env, epi_args)
@@ -227,9 +226,9 @@ def main(args):
             "use_epi_priors": False,
             "skip_warmup": True,
         }
+        logging.info(f"epistemic planner config: {ep_planner_config}")
         epistemic_planner = Runner(config=ep_planner_config)
         # config for model that will now be trained with priors
-        logging.info(f"training qmix args: {all_args}")
         config = {
             "args": all_args,
             "policy_info": policy_info,
@@ -243,6 +242,7 @@ def main(args):
             "epistemic_planner": epistemic_planner,
             "use_epi_priors": True,
         }
+        logging.info(f"training qmix config {config}")
     else:
         config = {
             "args": all_args,

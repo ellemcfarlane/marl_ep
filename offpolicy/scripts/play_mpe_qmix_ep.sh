@@ -10,7 +10,7 @@ seed_max=1
 CUDA_VISIBLE_DEVICES=0
 PYTHON_BIN=../../env/bin/python3
 PRETRAINED_QMIX=../models/epistemic_planner/
-MODEL_DIR=/work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix_ep/qmix-hpc/wandb/run-20231126_161538-1cehlgze/files/
+MODEL_DIR=../models/qmix_ep/full_obs_146/
 echo "env is ${env}, scenario is ${scenario}, algo is ${algo}, exp is ${exp}, max seed is ${seed_max}"
 
 for seed in $(seq ${seed_max}); do
