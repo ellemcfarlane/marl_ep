@@ -98,7 +98,6 @@ class Scenario(BaseScenario):
         other_pos = []
         for other in world.agents:
             if other is agent:
-                 # TODO (elle): inject epistemic priors here - skip if agent is self
                 continue
             # comm is (2,2) array
             comm.append(other.state.c)

@@ -125,7 +125,7 @@ class MPERunner(RecRunner):
         return env_info
     
     @staticmethod
-    def get_epistemic_priors(agent_id, agent_pos, other_poses):
+    def get_epistemic_priors(agent_pos, other_poses, agent_id=None):
         """
         Get the relative positions of other agents to the given agent.
         :param agent_pos: (np.ndarray) position of the given agent.
@@ -133,43 +133,60 @@ class MPERunner(RecRunner):
         :return relative_pos: (np.ndarray) relative positions of other agents to the given agent.
         """
         epistemic_priors = []
-        for other_agent_id, pos in enumerate(other_poses):
-            if other_agent_id != agent_id:
-                assert pos.shape == (2,), f"pos.shape: {pos.shape}; should be (2,)"
-                assert agent_pos.shape == (2,), f"agent_pos.shape: {agent_pos.shape}; should be (2,)"
-                relative_pos = pos - agent_pos
-                epistemic_priors.append(relative_pos)
+        for pos in other_poses:
+            # TODO (elle): discuss with team about whether to include self in epistemic priors
+            # if other_agent_id == agent_id:
+            #     continue
+            assert pos.shape == (2,), f"pos.shape: {pos.shape}; should be (2,)"
+            assert agent_pos.shape == (2,), f"agent_pos.shape: {agent_pos.shape}; should be (2,)"
+            relative_pos = pos - agent_pos
+            epistemic_priors.append(relative_pos)
         return np.array(epistemic_priors)
     
-    def add_priors_to_obs(self, obs, agent_poses_in_plan):
+    @staticmethod
+    def agent_pos_from_obs(agent_id, obs):
+        """
+        Get the agent's position from the observation.
+        :param agent_id: (int) agent id to get the position of.
+        :param obs: (np.ndarray) observation of shape (n_envs, n_agents, 18) to get the agent's position from - so dim of each agent's individual obs is 18
+        :return agent_pos: (np.ndarray) agent's position.
+        """
+        env_idx = 0
+        agent_pos = obs[env_idx, agent_id, 2:4]
+        return agent_pos
+
+        
+    @staticmethod
+    def add_priors_to_obs(obs, agent_poses_in_plan):
         """
         Add priors to the observation.
         :param obs: (np.ndarray) observation of shape (n_envs, n_agents, 18) to add priors to - so dim of each agent's individual obs is 18
         :param priors: (np.ndarray) priors to add to the observation.
-        :return obs: (np.ndarray) observation with priors added.
+        :return obs: (np.ndarray) observation with priors added, with shape (n_envs, n_agents, 18 + 2*(n_agents))
         """
         env_idx = 0 # only one env for now
         # make modified_obs with same shape as obs but with priors added
-        modified_obs = np.zeros((self.num_envs, self.num_agents, 18 + 2*(self.num_agents-1)))
-        for agent_id in range(self.num_agents):
-            # agent_pos = obs[0, agent_id, 5:7]
-            # get agent_pos from state
-            # env is vectorized env, so env.envs[0] is the actual env when n_envs = 1
-            agent_pos = self.env.envs[env_idx].world.agents[agent_id].state.p_pos
-            assert agent_poses_in_plan.shape == (self.num_agents, 2), f"agent_poses_in_plan.shape: {agent_poses_in_plan.shape}; should be {(self.num_agents, 2)}"
-            priors = MPERunner.get_epistemic_priors(agent_id, agent_pos, agent_poses_in_plan)
-            exp_priors_shape = (self.num_agents-1, 2)
+        num_envs, num_agents, obs_dim = obs.shape
+        modified_obs = np.zeros((num_envs, num_agents, obs_dim + 2 * num_agents))
+        print(modified_obs.shape)
+        # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
+        current_agent_poses = [MPERunner.agent_pos_from_obs(i, obs) for i in range(num_agents)]
+        for agent_id, agent_pos in enumerate(current_agent_poses):
+            print(f"agent_id: {agent_id}, agent_pos: {agent_pos}, shape {agent_pos.shape}")
+            assert agent_poses_in_plan.shape == (num_agents, 2), f"agent_poses_in_plan.shape: {agent_poses_in_plan.shape}; should be {(num_agents, 2)}"
+            priors = MPERunner.get_epistemic_priors(agent_pos, agent_poses_in_plan)
+            exp_priors_shape = (num_agents, 2)
             assert priors.shape == exp_priors_shape, f"priors.shape: {priors.shape}; should be {exp_priors_shape}"
             logging.debug(f"priors: {priors}")
             # now flattern priors to add to obs
             priors = priors.flatten()
             logging.debug(f"priors after flattening: {priors}")
-            assert priors.shape == (2*(self.num_agents-1),), f"priors.shape: {priors.shape} after flattening, should be {(2*(self.num_agents-1),)}"
+            assert priors.shape == (2*(num_agents),), f"priors.shape: {priors.shape} after flattening, should be {(2*(num_agents),)}"
             old_entry = obs[env_idx, agent_id]
             logging.debug(f"old_entry.shape: {old_entry.shape}")
             logging.debug(f"priors.shape: {priors.shape}")
             new_entry = np.concatenate((old_entry, priors), axis=-1)
-            assert new_entry.shape == (18 + 2*(self.num_agents-1),), f"new_entry.shape: {new_entry.shape}; should be {(18 + 2*(self.num_agents-1),)}"
+            assert new_entry.shape == (obs_dim + 2*(num_agents),), f"new_entry.shape: {new_entry.shape}; should be {(obs_dim + 2*(num_agents),)}"
             modified_obs[env_idx, agent_id] = new_entry
         return modified_obs
 

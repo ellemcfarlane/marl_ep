@@ -1,4 +1,7 @@
 
+test:
+	pytest tests/epistemic/test_marl_ep.py
+
 train-mad:
 	cd offpolicy/scripts/; \
 	chmod +x ./train_mpe_maddpg.sh; \
