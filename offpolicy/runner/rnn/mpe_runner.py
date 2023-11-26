@@ -60,31 +60,20 @@ class MPERunner(RecRunner):
         episode_rewards = {p_id : np.zeros((self.episode_length, self.num_envs, self.num_agents, 1), dtype=np.float32) for p_id in self.policy_ids}
         episode_dones = {p_id : np.ones((self.episode_length, self.num_envs, self.num_agents, 1), dtype=np.float32) for p_id in self.policy_ids}
         episode_dones_env = {p_id : np.ones((self.episode_length, self.num_envs, 1), dtype=np.float32) for p_id in self.policy_ids}
-        episode_avail_acts = {p_id : None for p_id in self.policy_ids}
 
-        explore = False
-        warmup = False
-        render = True
         t = 0
+        logging.info(f"playing episode of length {self.episode_length}")
         while t < self.episode_length:
             share_obs = obs.reshape(self.num_envs, -1)
             # group observations from parallel envs into one batch to process at once
             obs_batch = np.concatenate(obs)
             # get actions for all agents to step the env
-            if warmup:
-                # completely random actions in pre-training warmup phase
-                acts_batch = policy.get_random_actions(obs_batch)
-                # get new rnn hidden state
-                _, rnn_states_batch, _ = policy.get_actions(obs_batch,
-                                                            last_acts_batch,
-                                                            rnn_states_batch)
-            else:
-                # get actions with exploration noise (eps-greedy/Gaussian)
-                acts_batch, rnn_states_batch, _ = policy.get_actions(obs_batch,
-                                                                    last_acts_batch,
-                                                                    rnn_states_batch,
-                                                                    t_env=self.total_env_steps,
-                                                                    explore=explore)
+
+            acts_batch, rnn_states_batch, _ = policy.get_actions(obs_batch,
+                                                    last_acts_batch,
+                                                    rnn_states_batch,
+                                                    explore=False)
+
             acts_batch = acts_batch if isinstance(acts_batch, np.ndarray) else acts_batch.cpu().detach().numpy()
             # update rnn hidden state
             rnn_states_batch = rnn_states_batch if isinstance(rnn_states_batch, np.ndarray) else rnn_states_batch.cpu().detach().numpy()
@@ -93,10 +82,9 @@ class MPERunner(RecRunner):
             env_acts = np.split(acts_batch, self.num_envs)
             # env step and store the relevant episode informatio
             next_obs, rewards, dones, infos = env.step(env_acts)
-            if render:
-                env.render()
-                # sleep to slow down rendering
-                time.sleep(0.1)
+            env.render()
+            # sleep to slow down rendering
+            time.sleep(0.1)
 
             dones_env = np.all(dones, axis=1)
             terminate_episodes = np.any(dones_env) or t == self.episode_length - 1
@@ -119,6 +107,7 @@ class MPERunner(RecRunner):
 
         average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], axis=0))
         env_info['average_episode_rewards'] = average_episode_rewards
+        logging.info(f"average_episode_rewards: {average_episode_rewards}")
 
         return env_info
     
@@ -219,7 +208,7 @@ class MPERunner(RecRunner):
     @staticmethod
     @torch.no_grad()
     # TODO: make self method and just call epistemic_planner.collect_epistemic_plan()
-    def collect_epistemic_plan(epistemic_planner, env):
+    def collect_epistemic_plan(epistemic_planner, env, render=False):
         env_info = {}
         # only 1 policy since all agents share weights
         p_id = "policy_0"
@@ -246,8 +235,6 @@ class MPERunner(RecRunner):
             # group observations from parallel envs into one batch to process at once
             obs_batch = np.concatenate(obs)
             # get actions for all agents to step the env
- 
-                # get actions with exploration noise (eps-greedy/Gaussian)
             acts_batch, rnn_states_batch, _ = policy.get_actions(obs_batch,
                                                     last_acts_batch,
                                                     rnn_states_batch,
@@ -260,7 +247,9 @@ class MPERunner(RecRunner):
             env_acts = np.split(acts_batch, epistemic_planner.num_envs)
             # env step and store the relevant episode information
             next_obs, rewards, dones, infos = env.step(env_acts)
-
+            env.render()
+            # sleep to slow down rendering
+            time.sleep(0.1)
             epistemic_planner.total_env_steps += epistemic_planner.num_envs
 
             dones_env = np.all(dones, axis=1)
@@ -354,9 +343,9 @@ class MPERunner(RecRunner):
                 assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
                 assert np.all(init_epi_landmark_poses == init_landmark_poses), f"init_epi_landmark_poses: {init_epi_landmark_poses} don't match init_landmark_poses: {init_landmark_poses}"
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
-            plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
+            plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env, render=True)
             agent_rollouts_obs_comp = plan[p_id]
-            logging.debug(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
+            logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
             # agent_rollouts = self.epistemic_planner.buffer.sample_ordered(n_plans)
             # agent_rollouts_obs_comp = agent_rollouts[0][p_id] # (3, 26, 1, 18) aka (n_agents, ep_len + 1, n_envs, obs_dim)
             # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")

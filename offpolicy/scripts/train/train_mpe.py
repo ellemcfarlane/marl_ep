@@ -92,7 +92,7 @@ def get_policy_info_from_env(env, args):
                                         "obs_space": env.observation_space[agent_id],
                                         "share_obs_space": env.share_observation_space[agent_id],
                                         "act_space": env.action_space[agent_id]}
-            for agent_id in range(num_agents)
+            for agent_id in range(args.num_agents)
         }
 
     return policy_info
@@ -259,6 +259,11 @@ def main(args):
             "run_dir": run_dir
         }
 
+    config["skip_warmup"] = True if all_args.play else False
+    if all_args.model_dir is None:
+        raise ValueError("Must specify model_dir if playing")
+    elif all_args.epi_dir is not None:
+        logging.warning("NO EPI_DIR MODEL SPECIFIED, PLAYING WITHOUT PRIORS")
     total_num_steps = 0
     runner = Runner(config=config)
     logging.info("running?")
@@ -271,6 +276,7 @@ def main(args):
             logging.debug(f"episode {episodes} complete, total_num_steps {total_num_steps}")
             episodes += 1
     else:
+        # add "skip_warmup": True to config
         runner.play()
     env.close()
     if all_args.use_eval and (eval_env is not env):
