@@ -259,7 +259,7 @@ def main(args):
     config["skip_warmup"] = True if all_args.play else False
     if all_args.play and all_args.model_dir is None:
         raise ValueError("Must specify model_dir if playing")
-    elif all_args.play and all_args.epi_dir is not None:
+    elif all_args.play and all_args.epi_dir is None:
         logging.warning("NO EPI_DIR MODEL SPECIFIED, PLAYING WITHOUT PRIORS")
     total_num_steps = 0
     runner = Runner(config=config)
