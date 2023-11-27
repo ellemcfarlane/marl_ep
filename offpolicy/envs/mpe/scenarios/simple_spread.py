@@ -20,7 +20,6 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.size = 0.15
             agent.fov = args.fov
-            print(f"agent fov {agent.fov}")
         # add landmarks
         world.landmarks = [Landmark() for i in range(world.num_landmarks)]
         for i, landmark in enumerate(world.landmarks):
