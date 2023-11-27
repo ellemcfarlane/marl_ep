@@ -615,3 +615,4 @@ class MPERunner(RecRunner):
         self.env_infos = {}
 
         self.env_infos['average_episode_rewards'] = []
+        self.env_infos['epi_avg_episode_rewards'] = []
