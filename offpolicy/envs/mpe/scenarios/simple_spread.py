@@ -102,12 +102,15 @@ class Scenario(BaseScenario):
             if other is agent:
                 continue
             # comm is (2,2) array
+            # log warning if comm is not all zeros
+            if np.any(other.state.c != 0):
+                print(f"WARNING: other.state.c is non-zero {other.state.c}")
             comm.append(other.state.c)
             # if agent.fov == 0:
             #     other_pos.append(np.zeros(world.dim_p))
             # else:
             #     # TODO (elle): handle when fov is not 0 (none) or -1 (full)
             other_pos.append(other.state.p_pos - agent.state.p_pos)
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
+        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
         # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
         return obs

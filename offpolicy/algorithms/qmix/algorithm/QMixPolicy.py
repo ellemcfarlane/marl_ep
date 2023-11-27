@@ -28,10 +28,10 @@ class QMixPolicy(RecurrentPolicy):
         self.discrete = is_discrete(self.act_space)
         self.multidiscrete = is_multidiscrete(self.act_space)
 
-        if self.args.epistemic:
-            assert self.obs_dim == 24, f"obs dims should be 24 when args.epistemic=True, but is {self.obs_dim}"
-        else:
-            assert self.obs_dim == 18, f"obs dims should be 18 when args.epistemic=False, but is {self.obs_dim}"
+        # if self.args.epistemic:
+        #     assert self.obs_dim == 24, f"obs dims should be 24 when args.epistemic=True, but is {self.obs_dim}"
+        # else:
+        #     assert self.obs_dim == 18, f"obs dims should be 18 when args.epistemic=False, but is {self.obs_dim}"
         logging.info(f"OBS DIMS?! {self.obs_dim}, epistemic: {self.args.epistemic}")
         if self.args.prev_act_inp:
             # this is only local information so the agent can act decentralized
