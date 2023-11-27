@@ -14,6 +14,11 @@ train-ep:
 	chmod +x ./train_mpe_qmix_ep.sh; \
 	use_wandb=${USE_WANDB} ./train_mpe_qmix_ep.sh
 
+play:
+	cd offpolicy/scripts/; \
+	chmod +x ./play_mpe_qmix.sh; \
+	./play_mpe_qmix.sh
+
 play-ep:
 	cd offpolicy/scripts/; \
 	chmod +x ./play_mpe_qmix_ep.sh; \
