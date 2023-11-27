@@ -346,6 +346,7 @@ class MPERunner(MlpRunner):
         self.env_infos = {}
 
         self.env_infos['average_episode_rewards'] = []
+        self.env_infos['epi_avg_episode_rewards'] = []
     
     @torch.no_grad()
     def warmup(self, num_warmup_episodes):
