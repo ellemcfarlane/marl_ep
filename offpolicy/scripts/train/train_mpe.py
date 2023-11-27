@@ -241,7 +241,7 @@ def main(args):
             "run_dir": run_dir,
             "epistemic_planner": epistemic_planner,
             "use_epi_priors": True,
-            "skip_warmup": True,
+            "skip_warmup": False,
         }
     else:
         config = {
@@ -269,10 +269,10 @@ def main(args):
     episodes = 0
     if not all_args.play:
         while total_num_steps < all_args.num_env_steps:
-            logging.debug("calling runner.run()")
+            # logging.debug("calling runner.run()")
             total_num_steps = runner.run()
-            logging.debug(".run() done")
-            logging.debug(f"episode {episodes} complete, total_num_steps {total_num_steps}")
+            # logging.debug(".run() done")
+            # logging.debug(f"episode {episodes} complete, total_num_steps {total_num_steps}")
             episodes += 1
     else:
         runner.play()
@@ -287,6 +287,7 @@ def main(args):
             str(runner.log_dir + '/summary.json'))
         runner.writter.close()
 
-
+# import cProfile
 if __name__ == "__main__":
+    # cProfile.run("main(sys.argv[1:])", "profile_output.txt")
     main(sys.argv[1:])

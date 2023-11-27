@@ -45,6 +45,10 @@ stat:
 	echo "Latest .out file: $$out_file"; \
 	cat "$$err_file" "$$out_file"
 
+profile:
+	cd offpolicy/scripts/; \
+	python3 read_profile.py
+
 # /work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_143441-3g43g1v8/files/policy_0/q_network.pt
 # /work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_143441-3g43g1v8/files/mixer.pt
 

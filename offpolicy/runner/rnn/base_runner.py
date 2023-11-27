@@ -7,7 +7,6 @@ from tensorboardX import SummaryWriter
 from offpolicy.utils.rec_buffer import RecReplayBuffer, PrioritizedRecReplayBuffer
 from offpolicy.utils.util import DecayThenFlatSchedule, setup_logging, pretty_print_config
 import logging
-
 setup_logging()
 
 class RecRunner(object):
@@ -188,21 +187,21 @@ class RecRunner(object):
     def run(self):
         """Collect a training episode and perform appropriate training, saving, logging, and evaluation steps."""
         # collect data
-        logging.debug("base_runner.run")
-        logging.debug("base_runner.trainer.prep_rollout")
+        # logging.debug("base_runner.run")
+        # logging.debug("base_runner.trainer.prep_rollout")
         self.trainer.prep_rollout()
-        logging.debug("base_runner.collecter(explore=True, training_episode=True, warmup=False")
-        logging.debug(f"self.collecter: {self.collecter}")
+        # logging.debug("base_runner.collecter(explore=True, training_episode=True, warmup=False")
+        # logging.debug(f"self.collecter: {self.collecter}")
         env_info = self.collecter(explore=True, training_episode=True, warmup=False)
-        logging.debug(f"after collecting {self.num_episodes_collected} episodes")
+        # logging.debug(f"after collecting {self.num_episodes_collected} episodes")
         for k, v in env_info.items():
             self.env_infos[k].append(v)
 
         # train
         if ((self.num_episodes_collected - self.last_train_episode) / self.train_interval_episode) >= 1 or self.last_train_episode == 0:
-            logging.debug("base_runner.train (should be batch_train_q)")
+            # logging.debug("base_runner.train (should be batch_train_q)")
             self.train()
-            logging.debug("base_runner.train done")
+            # logging.debug("base_runner.train done")
             self.total_train_steps += 1
             self.last_train_episode = self.num_episodes_collected
 
@@ -218,9 +217,9 @@ class RecRunner(object):
 
         # eval
         if self.use_eval and ((self.total_env_steps - self.last_eval_T) / self.eval_interval) >= 1:
-            logging.debug("base_runner.eval")
+            # logging.debug("base_runner.eval")
             self.eval()
-            logging.debug("base_runn.eval done")
+            # logging.debug("base_runn.eval done")
             self.last_eval_T = self.total_env_steps
 
         return self.total_env_steps
@@ -250,7 +249,7 @@ class RecRunner(object):
 
     def batch_train(self):
         """Do a gradient update for all policies."""
-        logging.debug("base_runner.batch_train -> self.trainer.prep_training")
+        # logging.debug("base_runner.batch_train -> self.trainer.prep_training")
         self.trainer.prep_training()
 
         # gradient updates
@@ -284,23 +283,23 @@ class RecRunner(object):
 
     def batch_train_q(self):
         """Do a q-learning update to policy (used for QMix and VDN)."""
-        logging.debug("base_runner.batch_train_q -> self.trainer.prep_training")
-        logging.debug(f"trainer (shold be QMIX): {self.trainer}")
+        # logging.debug("base_runner.batch_train_q -> self.trainer.prep_training")
+        # logging.debug(f"trainer (shold be QMIX): {self.trainer}")
         self.trainer.prep_training()
         # gradient updates
         self.train_infos = []
 
         for p_id in self.policy_ids:
-            logging.debug(f"use_per {self.use_per}")
+            # logging.debug(f"use_per {self.use_per}")
             if self.use_per:
                 beta = self.beta_anneal.eval(self.total_train_steps)
                 sample = self.buffer.sample(self.batch_size, beta, p_id)
             else:
                 sample = self.buffer.sample(self.batch_size)
-            logging.debug(f"batch sample size {len(sample)}")
-            logging.debug(f"p_id {p_id} base_runner.batch_train_q -> self.trainer.train_policy_on_batch")
+            # logging.debug(f"batch sample size {len(sample)}")
+            # logging.debug(f"p_id {p_id} base_runner.batch_train_q -> self.trainer.train_policy_on_batch")
             train_info, new_priorities, idxes = self.trainer.train_policy_on_batch(sample)
-            logging.debug("training on batch done")
+            # logging.debug("training on batch done")
 
             if self.use_per:
                 self.buffer.update_priorities(idxes, new_priorities, p_id)
