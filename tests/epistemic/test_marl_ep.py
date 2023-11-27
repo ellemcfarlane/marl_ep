@@ -84,14 +84,15 @@ def test_joint_pos_in_epistemic_plan():
     agent_poses1 = MPERunner.joint_pos_in_epistemic_plan(rollout_obss, 1, n_agents)
     assert agent_poses1.shape == (n_agents, 2), f"agent_poses should have shape (n_agents, 2), not {agent_poses.shape}"
     exp_agent_poses1 = np.array([[2,2], [4,4], [6,6]])
-
+    assert np.all(agent_poses1 == exp_agent_poses1), f"agent_poses should be {exp_agent_poses1}, not {agent_poses1}"
+    
 @pytest.mark.parametrize(
     "test_input, expected",
     [
         ((-1, (4,4)), (True)),
         ((-1, (2,2)), (True)),
-        ((0, (4,4)), (True)),
-        ((0, (2,2)), (True)),
+        ((0, (4,4)), (False)),
+        ((0, (2,2)), (False)),
         ((1, (0,2)), (False)),
         ((1, (2,2)), (True)),
         ((1, (1,2)), (True)),
@@ -107,4 +108,4 @@ def test_within_fov(test_input, expected):
     other_agent = Agent()
     other_agent.state.p_pos = np.array(test_input[1])
     result = Scenario.within_fov(agent, other_agent)
-    assert result == expected, f"within_fov should be {expected}, not {result}"
+    assert result == expected, f"within_fov {agent.fov} should be {expected}, not {result}"
