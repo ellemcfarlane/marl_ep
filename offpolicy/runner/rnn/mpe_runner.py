@@ -80,7 +80,7 @@ class MPERunner(RecRunner):
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
             plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
             agent_rollouts_obs_comp = plan[p_id]
-            # logging.debug(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
+            logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
         # logging.info(f"playing episode of length {self.episode_length}")
         while t < self.episode_length:
             if self.epistemic_planner is not None:
@@ -357,7 +357,7 @@ class MPERunner(RecRunner):
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
             plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
             agent_rollouts_obs_comp = plan[p_id]
-            # logging.debug(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
+            logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
             # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
             # get types of each too
         while t < self.episode_length:
