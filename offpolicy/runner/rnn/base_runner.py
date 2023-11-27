@@ -5,7 +5,7 @@ import torch
 from tensorboardX import SummaryWriter
 
 from offpolicy.utils.rec_buffer import RecReplayBuffer, PrioritizedRecReplayBuffer
-from offpolicy.utils.util import DecayThenFlatSchedule, setup_logging
+from offpolicy.utils.util import DecayThenFlatSchedule, setup_logging, pretty_print_config
 import logging
 
 setup_logging()
@@ -23,7 +23,6 @@ class RecRunner(object):
         self.q_learning = ["qmix","qmix_ep","vdn"]
 
         self.skip_warmup = config.get("skip_warmup", False)
-        # print(f"self.skip_warmup: {self.skip_warmup}, skip_warmup in config: {'skip_warmup' in config}")
         self.share_policy = self.args.share_policy
         self.algorithm_name = self.args.algorithm_name
         self.env_name = self.args.env_name

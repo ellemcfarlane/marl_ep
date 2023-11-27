@@ -12,6 +12,17 @@ from torch.autograd import Variable
 import logging
 
 
+def pretty_print_config(config_name, config):
+    config_str = f"config for {config_name}:\n"
+    for k, v in config.items():
+        if type(v) == dict:
+            config_str += f"{k}:\n"
+            for k2, v2 in v.items():
+                config_str += f"    {k2}: {v2}\n"
+        else:
+            config_str += f"{k}: {v}\n"
+    logging.info(config_str)
+
 def setup_logging():
     logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d:%H:%M:%S',
