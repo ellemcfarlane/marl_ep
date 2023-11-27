@@ -19,8 +19,8 @@ class Scenario(BaseScenario):
             agent.collide = True
             agent.silent = True
             agent.size = 0.15
-            # agent.fov = args.fov
-            # print(f"agent fov {agent.fov}")
+            agent.fov = args.fov
+            print(f"agent fov {agent.fov}")
         # add landmarks
         world.landmarks = [Landmark() for i in range(world.num_landmarks)]
         for i, landmark in enumerate(world.landmarks):
@@ -86,6 +86,19 @@ class Scenario(BaseScenario):
                     rew -= 1
         return rew
 
+    @staticmethod
+    def within_fov(agent, other):
+        # TODO (elle): handle when fov is not 0 (none) or -1 (full)
+        if agent.fov == -1:
+            return True
+        if agent.fov == 0:
+            return False
+        rel_pos = other.state.p_pos - agent.state.p_pos
+        # e.g. if fov 1, the other agent has to have rel pos within (-1, 1) aka (-1,0) or (0,1) or (0,0) or (1,0) or (0,-1)
+        if abs(rel_pos[0]) > agent.fov or abs(rel_pos[1]) > agent.fov:
+            return False
+        return True
+
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
         entity_pos = []
@@ -96,18 +109,22 @@ class Scenario(BaseScenario):
         for entity in world.landmarks:  # world.entities:
             entity_color.append(entity.color)
         # communication of all other agents
-        comm = []
+        # comm = []
         other_pos = []
         for other in world.agents:
             if other is agent:
                 continue
             # comm is (2,2) array
-            comm.append(other.state.c)
+            # comm.append(other.state.c)
             # if agent.fov == 0:
-            #     other_pos.append(np.zeros(world.dim_p))
+                
+            #     # append dummy vals for other agent pos
+            #     # other_pos.append(np.zeros(world.dim_p))
             # else:
-            #     # TODO (elle): handle when fov is not 0 (none) or -1 (full)
-            other_pos.append(other.state.p_pos - agent.state.p_pos)
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
+            #     other_pos.append(other.state.p_pos - agent.state.p_pos)
+            # TODO (elle): handle when fov is not 0 (none) or -1 (full)
+            if Scenario.within_fov(agent, other):
+                other_pos.append(other.state.p_pos - agent.state.p_pos)
+        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
         # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
         return obs

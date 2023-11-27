@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 
 from offpolicy.runner.rnn.mpe_runner import MPERunner
+from offpolicy.envs.mpe.core import Agent
+from offpolicy.envs.mpe.scenarios.simple_spread import Scenario
 
 # parameterize
 @pytest.mark.parametrize(
@@ -82,3 +84,27 @@ def test_joint_pos_in_epistemic_plan():
     agent_poses1 = MPERunner.joint_pos_in_epistemic_plan(rollout_obss, 1, n_agents)
     assert agent_poses1.shape == (n_agents, 2), f"agent_poses should have shape (n_agents, 2), not {agent_poses.shape}"
     exp_agent_poses1 = np.array([[2,2], [4,4], [6,6]])
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [
+        ((-1, (4,4)), (True)),
+        ((-1, (2,2)), (True)),
+        ((0, (4,4)), (True)),
+        ((0, (2,2)), (True)),
+        ((1, (0,2)), (False)),
+        ((1, (2,2)), (True)),
+        ((1, (1,2)), (True)),
+        ((1, (2,3)), (True)),
+        ((1, (3,2)), (True)),
+        ((1, (2,1)), (True)),
+    ],
+)
+def test_within_fov(test_input, expected):
+    agent = Agent()
+    agent.state.p_pos = np.array([2,2])
+    agent.fov = test_input[0]
+    other_agent = Agent()
+    other_agent.state.p_pos = np.array(test_input[1])
+    result = Scenario.within_fov(agent, other_agent)
+    assert result == expected, f"within_fov should be {expected}, not {result}"
