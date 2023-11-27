@@ -109,22 +109,17 @@ class Scenario(BaseScenario):
         for entity in world.landmarks:  # world.entities:
             entity_color.append(entity.color)
         # communication of all other agents
-        # comm = []
+        comm = []
         other_pos = []
         for other in world.agents:
             if other is agent:
                 continue
             # comm is (2,2) array
-            # comm.append(other.state.c)
-            # if agent.fov == 0:
-                
-            #     # append dummy vals for other agent pos
-            #     # other_pos.append(np.zeros(world.dim_p))
-            # else:
-            #     other_pos.append(other.state.p_pos - agent.state.p_pos)
-            # TODO (elle): handle when fov is not 0 (none) or -1 (full)
+            comm.append(other.state.c)
             if Scenario.within_fov(agent, other):
                 other_pos.append(other.state.p_pos - agent.state.p_pos)
-        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos)
+            else:
+                other_pos.append(np.zeros(world.dim_p))
+        obs = np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
         # shape is (2 + 2 + num_landmarks * 2 + (num_agents-1) * 2 + (num_agents-1) * 2) = 4 + 6 + 4 + 4 = 18 when num_agents = 3, num_landmarks = 3
         return obs
