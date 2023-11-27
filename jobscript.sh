@@ -35,4 +35,4 @@ module load cuda/10.1
 module load cudnn/v7.6.5.32-prod-cuda-10.1
 
 echo "training agents..."
-make train-ep-hpc EXP=contd
+make train-ep-hpc EXP=full_vis_from_scratch
