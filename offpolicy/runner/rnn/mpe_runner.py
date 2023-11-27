@@ -78,7 +78,9 @@ class MPERunner(RecRunner):
                 assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
                 assert np.all(init_epi_landmark_poses == init_landmark_poses), f"init_epi_landmark_poses: {init_epi_landmark_poses} don't match init_landmark_poses: {init_landmark_poses}"
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
-            plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
+            plan, epi_env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
+            for k, v in epi_env_info.items():
+                env_info[k] = v
             agent_rollouts_obs_comp = plan[p_id]
             logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
         # logging.info(f"playing episode of length {self.episode_length}")
@@ -300,7 +302,7 @@ class MPERunner(RecRunner):
         episode_share_obs[p_id][t] = obs.reshape(epistemic_planner.num_envs, -1)
 
         average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], axis=0))
-        env_info['average_episode_rewards'] = average_episode_rewards
+        env_info['epi_avg_episode_rewards'] = average_episode_rewards
         plan = episode_obs
         return plan, env_info
 
@@ -355,7 +357,10 @@ class MPERunner(RecRunner):
                 assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
                 assert np.all(init_epi_landmark_poses == init_landmark_poses), f"init_epi_landmark_poses: {init_epi_landmark_poses} don't match init_landmark_poses: {init_landmark_poses}"
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
-            plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
+            plan, epi_env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
+            # add epi_env_info to env_info
+            for k, v in epi_env_info.items():
+                env_info[k] = v
             agent_rollouts_obs_comp = plan[p_id]
             # logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
             # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
@@ -485,7 +490,9 @@ class MPERunner(RecRunner):
                 assert np.all(init_epi_agent_poses == init_agent_poses), f"init_epi_agent_poses: {init_epi_agent_poses} don't match init_agent_poses: {init_agent_poses}"
                 assert np.all(init_epi_landmark_poses == init_landmark_poses), f"init_epi_landmark_poses: {init_epi_landmark_poses} don't match init_landmark_poses: {init_landmark_poses}"
             # plan has dims (epistemic_planner.episode_length + 1, epistemic_planner.num_envs, epistemic_planner.num_agents, policy.obs_dim)
-            plan, env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
+            plan, epi_env_info = MPERunner.collect_epistemic_plan(self.epistemic_planner, epi_env)
+            for k, v in epi_env_info.items():
+                env_info[k] = v
             agent_rollouts_obs_comp = plan[p_id]
             # logging.debug(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
             # logging.debug(f"plan's obs {agent_rollouts_obs_comp.shape}, ep_len {self.episode_length}")
