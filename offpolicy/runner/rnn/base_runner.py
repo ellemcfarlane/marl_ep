@@ -195,6 +195,8 @@ class RecRunner(object):
         env_info = self.collecter(explore=True, training_episode=True, warmup=False)
         # logging.debug(f"after collecting {self.num_episodes_collected} episodes")
         for k, v in env_info.items():
+            if k not in self.env_infos:
+                self.env_infos[k] = []
             self.env_infos[k].append(v)
 
         # train

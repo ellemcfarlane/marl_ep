@@ -32,10 +32,12 @@ class MPERunner(RecRunner):
         self.trainer.prep_rollout()
         eval_infos = {}
         eval_infos['average_episode_rewards'] = []
-
+        eval_infos['epi_avg_episode_rewards'] = []
         for _ in range(self.args.num_eval_episodes):
             env_info = self.collecter( explore=False, training_episode=False, warmup=False)
             for k, v in env_info.items():
+                if k not in eval_infos:
+                    eval_infos[k] = []
                 eval_infos[k].append(v)
 
         self.log_env(eval_infos, suffix="eval_")
@@ -83,7 +85,7 @@ class MPERunner(RecRunner):
             for k, v in epi_env_info.items():
                 env_info[k] = v
             agent_rollouts_obs_comp = plan[p_id]
-            logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
+            # logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
         # logging.info(f"playing episode of length {self.episode_length}")
         while t < self.episode_length:
             if self.epistemic_planner is not None:
