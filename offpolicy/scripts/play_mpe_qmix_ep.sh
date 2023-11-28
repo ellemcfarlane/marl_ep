@@ -8,9 +8,10 @@ exp="${exp:-debug}" # default to experiment name "debug"
 seed_max=1
 # WARNING: make sure device num is correct, e.g. check avail with nvidid-smi
 CUDA_VISIBLE_DEVICES=0
-PYTHON_BIN=/work3/s222376/off-policy/env/bin/python3
+PYTHON_BIN=../../env/bin/python3
 PRETRAINED_QMIX=../models/epistemic_planner/
 MODEL_DIR=../models/qmix_ep/full_obs_146/
+echo "python bin path is ${PYTHON_BIN}"
 echo "env is ${env}, scenario is ${scenario}, algo is ${algo}, exp is ${exp}, max seed is ${seed_max}"
 
 for seed in $(seq ${seed_max}); do

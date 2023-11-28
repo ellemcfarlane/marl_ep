@@ -10,6 +10,7 @@ seed_max=1
 CUDA_VISIBLE_DEVICES=0
 PYTHON_BIN=../../env/bin/python3
 MODEL_DIR=../models/epistemic_planner/
+echo "python bin path is ${PYTHON_BIN}"
 echo "env is ${env}, scenario is ${scenario}, algo is ${algo}, exp is ${exp}, max seed is ${seed_max}"
 if [ "${use_wandb}" = "true" ]; then
     wandb_flag="--use_wandb"

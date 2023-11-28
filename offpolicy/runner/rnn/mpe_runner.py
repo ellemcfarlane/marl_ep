@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import time
-import sys
+import os
 from offpolicy.runner.rnn.base_runner import RecRunner
 from offpolicy.utils.util import setup_logging
 import logging
@@ -13,6 +13,7 @@ class MPERunner(RecRunner):
     """Runner class for Multiagent Particle Envs (MPE). See parent class for more information."""
     def __init__(self, config):
         super(MPERunner, self).__init__(config)
+        logging.info(f"###ABSOLUTE PATH OF CURRENT FILE###: {os.path.abspath(__file__)}")
         self.collecter = self.shared_collect_rollout if self.share_policy else self.separated_collect_rollout
         # fill replay buffer with random actions
         if not self.skip_warmup:

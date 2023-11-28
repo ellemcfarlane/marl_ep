@@ -98,6 +98,8 @@ def get_policy_info_from_env(env, args):
     return policy_info
 
 def main(args):
+    logging.info(f"CURRENT PATH: {sys.path}")
+    logging.info(f"###ABSOLUTE PATH OF CURRENT FILE###: {os.path.abspath(__file__)}")
     parser = get_config()
     all_args = parse_args(args, parser)
     logging.info(f"all_args: {all_args}")
