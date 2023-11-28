@@ -118,6 +118,36 @@ class MultiAgentEnv(gym.Env):
         else:
             np.random.seed(seed)
 
+    def step_full_obs(self, action_n):
+        self.current_step += 1
+        obs_n = []
+        reward_n = []
+        done_n = []
+        info_n = []
+        self.agents = self.world.policy_agents
+        # set action for each agent
+        for i, agent in enumerate(self.agents):
+            self._set_action(action_n[i], agent, self.action_space[i])
+        # advance world state
+        self.world.step()  # core.step()
+        # record observation for each agent
+        for i, agent in enumerate(self.agents):
+            obs_n.append(self._get_obs(agent, full_obs=True))
+            reward_n.append([self._get_reward(agent)])
+            done_n.append([self._get_done(agent)])
+            info = {'individual_reward': self._get_reward(agent)}
+            info_n.append(info)
+
+        # all agents get total reward in cooperative case, if shared reward, all agents have the same reward, and reward is sum
+        reward = np.sum(reward_n)
+        if self.shared_reward:
+            reward_n = [[reward]] * self.num_agents
+
+        if self.post_step_callback is not None:
+            self.post_step_callback(self.world)
+
+        return obs_n, reward_n, done_n, info_n
+
     # step  this is  env.step()
     def step(self, action_n):
         self.current_step += 1
@@ -149,6 +179,21 @@ class MultiAgentEnv(gym.Env):
 
         return obs_n, reward_n, done_n, info_n
 
+    def reset_full_obs(self):
+        self.current_step = 0
+        # reset world
+        self.reset_callback(self.world)
+        # reset renderer
+        self._reset_render()
+        # record observations for each agent
+        obs_n = []
+        self.agents = self.world.policy_agents
+
+        for agent in self.agents:
+            obs_n.append(self._get_obs(agent, full_obs=True))
+
+        return obs_n
+        
     def reset(self):
         self.current_step = 0
         # reset world
@@ -171,10 +216,10 @@ class MultiAgentEnv(gym.Env):
         return self.info_callback(agent, self.world)
 
     # get observation for a particular agent
-    def _get_obs(self, agent):
+    def _get_obs(self, agent, full_obs=False):
         if self.observation_callback is None:
             return np.zeros(0)
-        return self.observation_callback(agent, self.world)
+        return self.observation_callback(agent, self.world, full_obs=full_obs)
 
     # get dones for a particular agent
     # unused right now -- agents are allowed to go beyond the viewing screen

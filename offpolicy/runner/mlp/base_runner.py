@@ -169,6 +169,8 @@ class MlpRunner(object):
         self.trainer.prep_rollout()
         env_info = self.collecter(explore=True, training_episode=True, warmup=False)
         for k, v in env_info.items():
+            if k not in self.env_infos.keys():
+                self.env_infos[k] = []
             self.env_infos[k].append(v)
 
         # save

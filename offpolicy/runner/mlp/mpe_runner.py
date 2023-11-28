@@ -24,10 +24,13 @@ class MPERunner(MlpRunner):
         self.trainer.prep_rollout()
         eval_infos = {}
         eval_infos['average_episode_rewards'] = []
+        eval_infos['epi_avg_episode_rewards'] = []
 
         for _ in range(self.args.num_eval_episodes):
             env_info = self.collecter( explore=False, training_episode=False, warmup=False)
             for k, v in env_info.items():
+                if k not in eval_infos:
+                    eval_infos[k] = []
                 eval_infos[k].append(v)
 
         self.log_env(eval_infos, suffix="eval_")

@@ -32,10 +32,12 @@ class MPERunner(RecRunner):
         self.trainer.prep_rollout()
         eval_infos = {}
         eval_infos['average_episode_rewards'] = []
-
+        eval_infos['epi_avg_episode_rewards'] = []
         for _ in range(self.args.num_eval_episodes):
             env_info = self.collecter( explore=False, training_episode=False, warmup=False)
             for k, v in env_info.items():
+                if k not in eval_infos:
+                    eval_infos[k] = []
                 eval_infos[k].append(v)
 
         self.log_env(eval_infos, suffix="eval_")
@@ -83,7 +85,7 @@ class MPERunner(RecRunner):
             for k, v in epi_env_info.items():
                 env_info[k] = v
             agent_rollouts_obs_comp = plan[p_id]
-            logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
+            # logging.info(f"epistemic planner collected plan of len {agent_rollouts_obs_comp.shape[0]} with reward {env_info['average_episode_rewards']}")
         # logging.info(f"playing episode of length {self.episode_length}")
         while t < self.episode_length:
             if self.epistemic_planner is not None:
@@ -244,9 +246,7 @@ class MPERunner(RecRunner):
         # only 1 policy since all agents share weights
         p_id = "policy_0"
         policy = epistemic_planner.policies[p_id]
-
-        obs = env.reset()
-
+        obs = env.reset_full_obs()
         rnn_states_batch = np.zeros((epistemic_planner.num_envs * epistemic_planner.num_agents, epistemic_planner.hidden_size), dtype=np.float32)
         last_acts_batch = np.zeros((epistemic_planner.num_envs * epistemic_planner.num_agents, policy.output_dim), dtype=np.float32)
 
@@ -276,7 +276,7 @@ class MPERunner(RecRunner):
 
             env_acts = np.split(acts_batch, epistemic_planner.num_envs)
             # env step and store the relevant episode information
-            next_obs, rewards, dones, infos = env.step(env_acts)
+            next_obs, rewards, dones, infos = env.step_full_obs(env_acts)
             if render:
                 env.render()
                 # sleep to slow down rendering
@@ -327,7 +327,7 @@ class MPERunner(RecRunner):
 
         env = self.env if training_episode or warmup else self.eval_env
         obs = env.reset()
-        # logging.debug(f'obs.shape at env.reset(): {obs.shape}')
+        #logging.debug(f'obs.shape at env.reset(): {obs.shape}')
         rnn_states_batch = np.zeros((self.num_envs * self.num_agents, self.hidden_size), dtype=np.float32)
         last_acts_batch = np.zeros((self.num_envs * self.num_agents, policy.output_dim), dtype=np.float32)
 
