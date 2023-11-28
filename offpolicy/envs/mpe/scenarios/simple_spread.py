@@ -98,7 +98,7 @@ class Scenario(BaseScenario):
             return False
         return True
 
-    def observation(self, agent, world):
+    def observation(self, agent, world, full_obs=False):
         # get positions of all entities in this agent's reference frame
         entity_pos = []
         for entity in world.landmarks:  # world.entities:
@@ -115,7 +115,9 @@ class Scenario(BaseScenario):
                 continue
             # comm is (2,2) array
             comm.append(other.state.c)
-            if Scenario.within_fov(agent, other):
+            if full_obs:
+                other_pos.append(other.state.p_pos - agent.state.p_pos)
+            elif Scenario.within_fov(agent, other):
                 other_pos.append(other.state.p_pos - agent.state.p_pos)
             else:
                 other_pos.append(np.zeros(world.dim_p))

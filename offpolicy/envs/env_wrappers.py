@@ -82,6 +82,9 @@ class ShareVecEnv(ABC):
         """
         pass
 
+    def step_wait_full_obs(self):
+        pass
+
     def close_extras(self):
         """
         Clean up the  extra resources, beyond what's in this base class.
@@ -105,6 +108,15 @@ class ShareVecEnv(ABC):
         """
         self.step_async(actions)
         return self.step_wait()
+
+    def step_full_obs(self, actions):
+        """
+        Step the environments synchronously.
+
+        This is available for backwards compatibility.
+        """
+        self.step_async(actions)
+        return self.step_wait_full_obs()
 
     def render(self, mode='human'):
         from ..utils.util import tile_images
@@ -433,9 +445,20 @@ class DummyVecEnv(ShareVecEnv):
 
         self.actions = None
         return obs, rews, dones, infos
+   
+    def step_wait_full_obs(self):
+        results = [env.step_full_obs(a) for (a, env) in zip(self.actions, self.envs)]
+        obs, rews, dones, infos = map(np.array, zip(*results))
+        
+        self.actions = None
+        return obs, rews, dones, infos
 
     def reset(self):
         obs = [env.reset() for env in self.envs]
+        return np.array(obs)
+
+    def reset_full_obs(self):
+        obs = [env.reset_full_obs() for env in self.envs]
         return np.array(obs)
 
     def close(self):
