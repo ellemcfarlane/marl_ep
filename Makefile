@@ -17,22 +17,22 @@ train-ep:
 play:
 	cd offpolicy/scripts/; \
 	chmod +x ./play_mpe_qmix.sh; \
-	./play_mpe_qmix.sh
+	exp=${EXP} ./play_mpe_qmix.sh
 
 play-ep:
 	cd offpolicy/scripts/; \
 	chmod +x ./play_mpe_qmix_ep.sh; \
-	./play_mpe_qmix_ep.sh
+	exp=${EXP} ./play_mpe_qmix_ep.sh
 
 train:
 	cd offpolicy/scripts/; \
 	chmod +x ./train_mpe_qmix.sh; \
-	./train_mpe_qmix.sh
+	exp=${EXP} use_wandb=${USE_WANDB} ./train_mpe_qmix.sh
 
 train-hpc:
 	cd offpolicy/scripts/; \
 	chmod +x ./train_mpe_qmix.sh; \
-	exp="qmix-hpc" ./train_mpe_qmix.sh
+	exp=${EXP} use_wandb=true ./train_mpe_qmix.sh
 
 train-ep-hpc:
 	cd offpolicy/scripts/; \
