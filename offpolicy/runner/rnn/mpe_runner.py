@@ -378,8 +378,6 @@ class MPERunner(RecRunner):
                 agent_poses_in_plan_at_time = self.joint_pos_in_epistemic_plan(agent_rollouts_obs_comp, t, self.num_agents)
                 obs = MPERunner.add_priors_to_obs(obs, agent_poses_in_plan_at_time)
                 if t == 0:
-                    # check that obs
-                    # init_agent_poses = np.array([env.envs[0].world.agents[i].state.p_pos for i in range(self.num_agents)])
                     init_agent_poses = [MPERunner.agent_pos_from_joint_obs(i, obs) for i in range(self.num_agents)]
                     # check init_agent_poses is same as agent_poses_in_plan_at_time 0
                     assert np.all(init_agent_poses == agent_poses_in_plan_at_time), f"init_agent_poses: {init_agent_poses} don't match agent_poses_in_plan_at_time 0: {agent_poses_in_plan_at_time}"
