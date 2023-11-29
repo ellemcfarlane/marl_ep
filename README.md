@@ -19,8 +19,9 @@ To modify training parameters, please see [train_mpe_qmix_ep.sh](offpolicy/scrip
 * NOTE: remove the vglrun command from make play-ep in Makefile if you are not on a compatible system
 
 ## 2. Models
-* see our trained epistemic model in offpolicy/models/epistemic_planner
-* see our models trained with the epistemic planner in offpolicy/models/qmix_ep/*
+* trained epistemic model (perfect sensing, no priors) in offpolicy/models/epistemic_planner
+* models trained with the varying fields-of-view + epistemic priors in offpolicy/models/qmix_ep/*
+* models trained with the varying fields-of-view, no epistemic priors in offpolicy/models/qmix/*
 
 ## 3. Installation on DTU HPC
 * conda create -n qmix python=3.6 OR if you don't have space on home dir and have a scratch dir, please see section 'DTU HPC more info' to see how to run conda create command
