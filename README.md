@@ -1,80 +1,47 @@
-# Off-Policy Multi-Agent Reinforcement Learning (MARL) Algorithms
 
-This repository contains implementations of various off-policy multi-agent reinforcement learning (MARL) algorithms.
-
-Authors: Akash Velu and Chao Yu
-
-## Algorithms supported:
-- MADDPG (MLP and RNN)
-- MATD3 (MLP and RNN)
-- QMIX (MLP and RNN)
-- VDN (MLP and RNN)
-
-## Environments supported:
-
-- [StarCraftII (SMAC)](https://github.com/oxwhirl/smac)
-- [Multiagent Particle-World Environments (MPEs)](https://github.com/openai/multiagent-particle-envs)
+This repo attempts to reproduce the results in the paper [Multi-Agent Reinforcement Learning with Epistemic Priors](https://prl-theworkshop.github.io/prl2023-icaps/papers/multi-agent-reinforcement-learning.pdf) by Walker et al. (2023) and is almost completely based on [Off-Policy Multi-Agent Reinforcement Learning (MARL) Algorithms](https://github.com/marlbenchmark/off-policy) with changes for epistemic learning as described in the paper.
 
 ## 1. Usage
-**WARNING #1: by default all experiments assume a shared policy by all agents i.e. there is one neural network shared by all agents**
+For original usage, please see [original_README.md](original_README.md).
 
-**WARNING #2: only QMIX and MADDPG are thoroughly tested; however,our VDN and MATD3 implementations make small modifications to QMIX and MADDPG, respectively. We display results using our implementation [here](https://docs.google.com/document/d/1s0Kb76b7v4WGyhiCNLrt9St-WvhGnl2AUQCe1FS-ADM/edit?usp=sharing).**
+Otherwise, for qmix training with epistemic priors:
+* locally: `make train-ep`
+* DTU HPC: `make train-ep-hpc`
 
-All core code is located within the offpolicy folder. The algorithms/ subfolder contains algorithm-specific code
-for all methods. RMADDPG and RMATD3 refer to RNN implementationso of MADDPG and MATD3, and mQMIX and mVDN refer to MLP implementations of QMIX and VDN. We additionally support prioritized experience replay (PER).
+For normal qmix training:
+* locally: `make train`
+* DTU HPC: `make train-hpc`
 
-* The envs/ subfolder contains environment wrapper implementations for the MPEs and SMAC. 
+To modify training parameters, please see [train_mpe_qmix_ep.sh](offpolicy/scripts/train_mpe_qmix_ep.sh) and [train_mpe_qmix.sh](offpolicy/scripts/train_mpe_qmix.sh).
 
-* Code to perform training rollouts and policy updates are contained within the runner/ folder - there is a runner for 
-each environment. 
+"Playing"/visualization of random MPE Spread scenario:
+* with priors: `make play-ep`, edit the MODEL_DIR var in [play_mpe_qmix_ep.sh](offpolicy/scripts/play_mpe_qmix_ep.sh) to point to the model you want to play.
+* NOTE: remove the vglrun command from make play-ep in Makefile if you are not on a compatible system
 
-* Executable scripts for training with default hyperparameters can be found in the scripts/ folder. The files are named
-in the following manner: train_algo_environment.sh. Within each file, the map name (in the case of SMAC and the MPEs) can be altered.
+## 2. Models
+* see our trained epistemic model in offpolicy/models/epistemic_planner
+* see our models trained with the epistemic planner in offpolicy/models/qmix_ep/*
 
-* Python training scripts for each environment can be found in the scripts/train/ folder. 
+## 3. Installation on DTU HPC
+* conda create -n qmix python=3.6 OR if you don't have space on home dir and have a scratch dir, please see section 'DTU HPC more info' to see how to run conda create command
+* conda activate qmix
+* which python3 # double check points to python bin in conda env
+* module load cuda/10.1 # you must run these icuda commands before installing torch otherwise it will say version not found!!
+* module load cudnn/v7.6.5.32-prod-cuda-10.1
+* python3 -m pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+* python3 -m pip install -r requirements.txt
 
-* The config.py file contains relevant hyperparameter and env settings. Most hyperparameters are defaulted to the ones
-used in the paper; however, please refer to the appendix for a full list of hyperparameters used. 
-
-
-## 2. Installation
-
- Here we give an example installation on CUDA == 10.1. For non-GPU & other CUDA version installation, please refer to the [PyTorch website](https://pytorch.org/get-started/locally/).
-
-``` Bash
-# create conda environment
-conda create -n marl python==3.6.1
-conda activate marl
-pip install torch==1.5.1+cu101 torchvision==0.6.1+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 ```
-```
-# install on-policy package
-cd on-policy
-pip install -e .
+# install offpolicy package
+cd marl_ep
+python3 -m pip install -e .
 ```
 
-Even though we provide requirement.txt, it may have redundancy. We recommend that the user try to install other required packages by running the code and finding which required package hasn't installed yet.
-
-### 2.1 Install StarCraftII [4.10](http://blzdistsc2-a.akamaihd.net/Linux/SC2.4.10.zip)
-
-   
-
-``` Bash
-unzip SC2.4.10.zip
-# password is iagreetotheeula
-echo "export SC2PATH=~/StarCraftII/" > ~/.bashrc
-```
-
-* download SMAC Maps, and move it to `~/StarCraftII/Maps/`.
-
-* To use a stableid, copy `stableid.json` from https://github.com/Blizzard/s2client-proto.git to `~/StarCraftII/`.
-
-
-### 2.2 Install MPE
+### 3.2 Install MPE
 
 ``` Bash
 # install this package first
-pip install seaborn
+python3 -m pip install seaborn
 ```
 
 There are 3 Cooperative scenarios in MPE:
@@ -83,16 +50,22 @@ There are 3 Cooperative scenarios in MPE:
 * simple_speaker_listener, which is 'Comm' scenario in paper
 * simple_reference
 
-## 3.Train
-Here we use train_mpe_maddpg.sh as an example:
-```
-cd offpolicy/scripts
-chmod +x ./train_mpe_maddpg.sh
-./train_mpe_maddpg.sh
-```
-Local results are stored in subfold scripts/results. Note that we use Weights & Bias as the default visualization platform; to use Weights & Bias, please register and login to the platform first. More instructions for using Weights&Bias can be found in the official [documentation](https://docs.wandb.ai/). Adding the `--use_wandb` in command line or in the .sh file will use Tensorboard instead of Weights & Biases. 
-
 ## 4. Results
-Results for the performance of RMADDPG and QMIX on the Particle Envs and QMIX in SMAC are depicted [here](https://docs.google.com/document/d/1s0Kb76b7v4WGyhiCNLrt9St-WvhGnl2AUQCe1FS-ADM/edit?usp=sharing). These results are obtained using a normal (not prioitized) replay buffer.
+<TODO: link to our overleaf paper with results>
 
+## 5. Training on DTU HPC
+* edit email in jobscript.sh to be your own (else: spam me)
+* `make queue` to submit job to queue
+* `make stat` to monitor job status
+* see wandb output e.g. at https://wandb.ai/elles/MPE/runs/z4277c1c?workspace=user-ellesummer
 
+### 5.1. DTU HPC more info
+https://docs.google.com/document/d/1pBBmoLTj_JPWiCSFYzfHj646bb8uUCh8lMetJxnE68c/edit
+https://skaftenicki.github.io/dtu_mlops/s10_extra/high_performance_clusters/
+
+### 5.2 conda create on scratch space directory
+If running into python binary issues with conda in your scratch space (aka when using --prefix to point to scratch), make sure to:
+s222376@n-62-20-1 /work3/s222376 $ conda config --set always_copy True
+s222376@n-62-20-1 /work3/s222376 $ conda config --show | grep always_copy
+always_copy: True
+s222376@n-62-20-1 /work3/s222376 $ conda create --prefix=<scratch-dir>/off-policy/env python=3.6
