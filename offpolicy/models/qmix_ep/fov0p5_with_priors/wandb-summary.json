@@ -1,0 +1,1 @@
+{"policy_0/loss": 1.804379940032959, "policy_0/grad_norm": 12.767638206481934, "policy_0/Q_tot": 4.9788079261779785, "average_episode_rewards": -126.9134292602539, "epi_avg_episode_rewards": -114.96942138671875, "_step": 5314000, "_runtime": 25359, "_timestamp": 1701293306, "eval_average_episode_rewards": -129.3363494873047, "eval_epi_avg_episode_rewards": -112.11300659179688}

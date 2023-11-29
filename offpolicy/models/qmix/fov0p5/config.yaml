@@ -16,7 +16,7 @@ actor_train_interval_step:
   value: 2
 algorithm_name:
   desc: null
-  value: qmix_ep
+  value: qmix
 alpha:
   desc: null
   value: 1.0
@@ -64,13 +64,13 @@ env_name:
   value: MPE
 epi_dir:
   desc: null
-  value: /work3/s222376/off-policy/offpolicy/scripts/results/MPE/simple_spread/qmix/debug/wandb/run-20231123_143441-3g43g1v8/files/
+  value: null
 episode_length:
   desc: null
   value: 25
 epistemic:
   desc: null
-  value: true
+  value: false
 epsilon_anneal_time:
   desc: null
   value: 50000
@@ -85,7 +85,10 @@ eval_interval:
   value: 10000
 experiment_name:
   desc: null
-  value: qmix-hpc
+  value: qmix05
+fov:
+  desc: null
+  value: 0.5
 gain:
   desc: null
   value: 0.01
