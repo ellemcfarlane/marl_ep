@@ -436,6 +436,19 @@ class DummyVecEnv(ShareVecEnv):
             env_fns), env.observation_space, env.share_observation_space, env.action_space)
         self.actions = None
 
+    # def step(self, actions):
+    #     """
+    #     Step the environments synchronously.
+
+    #     This is available for backwards compatibility.
+    #     """
+    #     self.step_async(actions)
+    #     return self.step_wait()
+    
+    # TODO (elle): make work with multiple envs
+    def _get_joint_obs(self, full_obs=False):
+        return self.envs[0]._get_joint_obs(full_obs=full_obs)
+
     def step_async(self, actions):
         self.actions = actions
 

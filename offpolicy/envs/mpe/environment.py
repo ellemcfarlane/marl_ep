@@ -215,6 +215,12 @@ class MultiAgentEnv(gym.Env):
             return {}
         return self.info_callback(agent, self.world)
 
+    def _get_joint_obs(self, full_obs=False):
+        obs_n = [self._get_obs(agent, full_obs=full_obs) for agent in self.world.policy_agents]
+        numpy_obs_n = np.stack(obs_n, axis=0) 
+        # match dims when env_n = 1
+        return numpy_obs_n.reshape(1, *numpy_obs_n.shape)
+
     # get observation for a particular agent
     def _get_obs(self, agent, full_obs=False):
         if self.observation_callback is None:
