@@ -38,7 +38,7 @@ for seed in $(seq ${seed_max}); do
         --user_name elles \
         --epi_dir ${PRETRAINED_QMIX} \
         --epistemic \
-        --fov 0 \
+        --fov 0.3 \
         ${wandb_flag}
     echo "training is done!"
 done
