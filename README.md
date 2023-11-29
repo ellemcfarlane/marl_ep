@@ -65,7 +65,7 @@ https://skaftenicki.github.io/dtu_mlops/s10_extra/high_performance_clusters/
 
 ### 5.2 conda create on scratch space directory
 If running into python binary issues with conda in your scratch space (aka when using --prefix to point to scratch), make sure to:
-s222376@n-62-20-1 /work3/s222376 $ conda config --set always_copy True
-s222376@n-62-20-1 /work3/s222376 $ conda config --show | grep always_copy
+* $ conda config --set always_copy True
+* $ conda config --show | grep always_copy
 always_copy: True
-s222376@n-62-20-1 /work3/s222376 $ conda create --prefix=<scratch-dir>/off-policy/env python=3.6
+* $ conda create --prefix=<scratch-dir>/off-policy/env python=3.6
