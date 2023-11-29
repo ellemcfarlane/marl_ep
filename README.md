@@ -1,3 +1,4 @@
+# MARL-EP
 
 This repo attempts to reproduce the results in the paper [Multi-Agent Reinforcement Learning with Epistemic Priors](https://prl-theworkshop.github.io/prl2023-icaps/papers/multi-agent-reinforcement-learning.pdf) by Walker et al. (2023) and is almost completely based on [Off-Policy Multi-Agent Reinforcement Learning (MARL) Algorithms](https://github.com/marlbenchmark/off-policy) with changes for epistemic learning as described in the paper.
 
