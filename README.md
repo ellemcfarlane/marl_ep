@@ -53,7 +53,7 @@ There are 3 Cooperative scenarios in MPE:
 * simple_reference
 
 ## 4. Results
-<TODO: link to our overleaf paper with results>
+[Paper](https://drive.google.com/file/d/1_KJLxU3mf2LM5cgVx5SqvwWpv3zobsB6/view?usp=sharing) with our results.
 
 ## 5. Training on DTU HPC
 * edit email in jobscript.sh to be your own (else: spam me)
